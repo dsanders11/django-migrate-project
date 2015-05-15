@@ -1,13 +1,7 @@
 from __future__ import unicode_literals
 
-from importlib import import_module
+from imp import load_source
 from os.path import exists as path_exists
-
-# Python 3 compatibility
-try:
-    from importlib import reload
-except ImportError:
-    from imp import reload
 
 # Python 3 compatibility
 try:
@@ -17,7 +11,6 @@ except ImportError:
 
 import os
 import shutil
-import sys
 import tempfile
 
 from django.conf import settings
@@ -50,16 +43,12 @@ class CollectMigrationsTest(TransactionTestCase):
             shutil.rmtree(DEFAULT_DIR)
 
     def load_migrations(self, dir=DEFAULT_DIR):
-        try:
-            sys.path.insert(0, dir)
-            blog_migrations = import_module('blog_migrations')
-            cookbook_migrations = import_module('cookbook_migrations')
+        """ Load migration source files from disk """
 
-            # Test order means these may have been imported before, so reload
-            reload(blog_migrations)
-            reload(cookbook_migrations)
-        finally:
-            sys.path.pop(0)
+        blog_migrations = load_source(
+            'blog_migrations', os.path.join(dir, 'blog_migrations.py'))
+        cookbook_migrations = load_source(
+            'cookbook_migrations', os.path.join(dir, 'cookbook_migrations.py'))
 
         return blog_migrations, cookbook_migrations
 
