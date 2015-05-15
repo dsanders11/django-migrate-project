@@ -174,7 +174,7 @@ class MigrateProjectTest(TransactionTestCase):
         with mock.patch(get_app_configs_path) as get_app_configs:
             # NOTE: This is reversed to get full line statement coverage,
             #       where it needs 'cookbook' to be processed before 'blog'
-            get_app_configs.return_value = list(reversed(app_configs))
+            get_app_configs.return_value = list(reversed(list(app_configs)))
 
             connection = connections[DEFAULT_DB_ALIAS]
             loader = MigrationLoader(connection)

@@ -3,6 +3,13 @@ from __future__ import unicode_literals
 from importlib import import_module
 from os.path import exists as path_exists
 
+# Python 3 compatibility
+try:
+    from importlib import reload
+except ImportError:
+    from imp import reload
+
+# Python 3 compatibility
 try:
     import __builtin__ as builtins
 except ImportError:
