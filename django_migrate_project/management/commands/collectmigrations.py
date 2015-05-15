@@ -120,7 +120,7 @@ class Command(BaseCommand):
             if os.path.exists(migrations_dir):
                 shutil.rmtree(migrations_dir)
 
-            os.makedirs(migrations_dir)
+            os.mkdir(migrations_dir)
 
             project_migrations = {}
 
@@ -156,6 +156,8 @@ class Command(BaseCommand):
             # Delete the output dir to avoid a combination of new and old files
             if os.path.exists(migrations_dir):
                 shutil.rmtree(migrations_dir)
+
+            raise
 
     def create_app_migration(self, app_label, migrations):
         """ Create a migration for the app which replaces the migrations """
@@ -203,7 +205,7 @@ class Command(BaseCommand):
                     )
 
         # Make a new migration class with these operations
-        migration_class = type('Migration', (Migration, ), {
+        migration_class = type(str('Migration'), (Migration, ), {
             'dependencies': dependencies,
             'operations': new_operations,
             'replaces': sorted(replaces),

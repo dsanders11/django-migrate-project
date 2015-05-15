@@ -179,10 +179,10 @@ class Command(MigrateCommand):
                         % (target[1], target[0])
                     )
 
-        try:
+        try:  # pragma: no cover
             emit_pre_migrate_signal([], verbosity, interactive,
                                     connection.alias)
-        except TypeError:
+        except TypeError:  # pragma: no cover
             emit_pre_migrate_signal(verbosity, interactive, connection.alias)
 
         # Migrate!
@@ -213,8 +213,8 @@ class Command(MigrateCommand):
 
         # Send the post_migrate signal, so individual apps can do whatever they
         # need to do at this point.
-        try:
+        try:  # pragma: no cover
             emit_post_migrate_signal([], verbosity, interactive,
                                      connection.alias)
-        except TypeError:
+        except TypeError:  # pragma: no cover
             emit_post_migrate_signal(verbosity, interactive, connection.alias)

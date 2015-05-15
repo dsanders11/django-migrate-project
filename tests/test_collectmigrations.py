@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from importlib import import_module
 from os.path import exists as path_exists
 
@@ -75,7 +77,8 @@ class CollectMigrationsTest(TransactionTestCase):
                     dir=output_dir)
             finally:
                 # Clean up immediately to prevent dangling temp dirs
-                shutil.rmtree(output_dir)
+                if path_exists(output_dir):
+                    shutil.rmtree(output_dir)
 
             # Check that the human visible output looks as expected
             self.assertIn("migrations collected", out.getvalue().lower())
@@ -165,7 +168,8 @@ class CollectMigrationsTest(TransactionTestCase):
                 self.assertFalse(path_exists(blog_migrations))
             finally:
                 # Clean up immediately to prevent dangling temp dirs
-                shutil.rmtree(output_dir)
+                if path_exists(output_dir):
+                    shutil.rmtree(output_dir)
 
             # Revert the migration of the 'blog' test app
             call_command('migrate', 'blog', 'zero', verbosity=0)
@@ -175,16 +179,20 @@ class CollectMigrationsTest(TransactionTestCase):
 
         with mock.patch.object(builtins, 'open') as mock_open:
             mock_open.side_effect = IOError()
-            call_command('collectmigrations', verbosity=0)
+
+            with self.assertRaises(IOError):
+                call_command('collectmigrations', verbosity=0)
 
         self.assertFalse(path_exists(DEFAULT_DIR))
 
         module = 'django_migrate_project.management.commands.collectmigrations'
-        makedirs_path = module + '.os.makedirs'
+        mkdir_path = module + '.os.mkdir'
 
-        with mock.patch(makedirs_path) as makedirs:
-            makedirs.side_effect = IOError()
-            call_command('collectmigrations', verbosity=0)
+        with mock.patch(mkdir_path) as mkdir:
+            mkdir.side_effect = IOError()
+
+            with self.assertRaises(IOError):
+                call_command('collectmigrations', verbosity=0)
 
         self.assertFalse(path_exists(DEFAULT_DIR))
 
