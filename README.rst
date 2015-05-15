@@ -10,6 +10,10 @@
    :alt: Build Status
    :target: https://travis-ci.org/dsanders11/django-migrate-project
 
+.. image:: https://pypip.in/v/django-migrate-project/badge.svg
+   :alt: Latest PyPI version
+   :target: https://pypi.python.org/pypi/django-migrate-project/
+
 .. image:: https://coveralls.io/repos/dsanders11/django-migrate-project/badge.svg?branch=master
    :alt: Coverage
    :target: https://coveralls.io/r/dsanders11/django-migrate-project?branch=master
