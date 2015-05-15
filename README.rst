@@ -43,8 +43,8 @@ Simply use `pip`_ to install::
 
     $ pip install django-migrate-project
 
-To be of any use `django-migrate-project` must be added to the Django project
-via `INSTALLED_APPS` in the project `settings.py` file::
+To be of any use ``django-migrate-project`` must be added to the Django project
+via ``INSTALLED_APPS`` in the project `settings.py` file::
 
     INSTALLED_APPS = (
         ...
@@ -60,14 +60,14 @@ unapplied migrations for the project simply run::
 
     $ python manage.py collectmigrations
 
-The default collection location is `BASE_DIR/migrations`. If the project's
-`settings.py` does not have a `BASE_DIR` then a directory path must be provided
-using the `--output-dir` option.
+The default collection location is ``BASE_DIR/migrations``. If the project's
+``settings.py`` does not have a ``BASE_DIR`` then a directory path must be provided
+using the ``--output-dir`` option.
 
 The collected migrations are grouped per-app and have the filename format of
-`<app_label>_migrations.py`. These files can be edited to taste in order to
+``<app_label>_migrations.py``. These files can be edited to taste in order to
 change the migration, the only important bit is to keep the `replaces` and
-`dependencies` fields in the migration the same, as those allow the bookkeeping
+``dependencies`` fields in the migration the same, as those allow the bookkeeping
 to be kept accurate.
 
 Collected migrations are applied via::
@@ -75,7 +75,7 @@ Collected migrations are applied via::
     $ python manage.py migrateproject
 
 The default directory path is used again if possible, otherwise the path must
-be provided via the `--input-dir` option.
+be provided via the ``--input-dir`` option.
 
 Finally, migrations can be unapplied easily as well, returning the migration
 state to what it was before by running::
