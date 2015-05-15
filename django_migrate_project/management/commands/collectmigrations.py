@@ -131,7 +131,7 @@ class Command(BaseCommand):
                     app_label, app_migrations[app_label])
 
             # Resolve dependencies between the consolidated migrations and save
-            for app_label, migration in project_migrations.iteritems():
+            for app_label, migration in project_migrations.items():
                 for dependency in copy(migration.dependencies):
                     # If cross-app dependency
                     if dependency[0] != app_label:
