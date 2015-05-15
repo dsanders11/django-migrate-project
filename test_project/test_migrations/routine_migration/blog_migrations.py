@@ -6,7 +6,7 @@ from django.db import models, migrations
 
 class Migration(migrations.Migration):
 
-    replaces = [(b'blog', '0002_tag')]
+    replaces = [('blog', '0002_tag')]
 
     dependencies = [
         ('blog', '0001_initial'),
@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, primary_key=True, auto_created=True)),
                 ('name', models.CharField(max_length=32)),
-                ('posts', models.ManyToManyField(to=b'blog.Post')),
+                ('posts', models.ManyToManyField(to='blog.Post')),
             ],
             options={
             },

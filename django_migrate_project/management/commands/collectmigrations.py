@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from collections import defaultdict
 from copy import copy
 from optparse import make_option

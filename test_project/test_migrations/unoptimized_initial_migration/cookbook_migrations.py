@@ -6,7 +6,7 @@ from django.db import models, migrations
 
 class Migration(migrations.Migration):
 
-    replaces = [(b'cookbook', '0001_initial'), (b'cookbook', '0002_cookware'), (b'cookbook', '0003_auto_20150514_1515'), (b'cookbook', '0004_auto_20150515_0006'), (b'cookbook', '0005_cookware')]
+    replaces = [('cookbook', '0001_initial'), ('cookbook', '0002_cookware'), ('cookbook', '0003_auto_20150514_1515'), ('cookbook', '0004_auto_20150515_0006'), ('cookbook', '0005_cookware')]
 
     dependencies = [
     ]
@@ -47,13 +47,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='recipe',
             name='ingredients',
-            field=models.ManyToManyField(to=b'cookbook.Ingredient', through='cookbook.RecipeIngredient'),
+            field=models.ManyToManyField(to='cookbook.Ingredient', through='cookbook.RecipeIngredient'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='ingredient',
             name='recipes',
-            field=models.ManyToManyField(to=b'cookbook.Recipe', through='cookbook.RecipeIngredient'),
+            field=models.ManyToManyField(to='cookbook.Recipe', through='cookbook.RecipeIngredient'),
             preserve_default=True,
         ),
         migrations.CreateModel(
@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(serialize=False, primary_key=True, auto_created=True, verbose_name='ID')),
                 ('name', models.CharField(max_length=32)),
-                ('recipes', models.ManyToManyField(to=b'cookbook.Recipe')),
+                ('recipes', models.ManyToManyField(to='cookbook.Recipe')),
             ],
             options={
             },
@@ -95,7 +95,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(serialize=False, primary_key=True, auto_created=True, verbose_name='ID')),
                 ('name', models.CharField(max_length=32)),
-                ('recipes', models.ManyToManyField(to=b'cookbook.Recipe')),
+                ('recipes', models.ManyToManyField(to='cookbook.Recipe')),
             ],
             options={
             },
