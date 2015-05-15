@@ -6,7 +6,7 @@ from django_migrate_project import __version__
 
 
 setup(
-    name="django_migrate_project",
+    name="django-migrate-project",
     version=__version__,
     description="Django management commands for project-wide (editable) "
                 "migrations.",
