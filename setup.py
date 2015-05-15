@@ -16,7 +16,7 @@ setup(
     author_email="dsanders11@ucsbalum.com",
     url="https://github.com/dsanders11/django-migrate-project/",
     keywords="django migration database",
-    packages=find_packages(exclude=("tests","test_project")),
+    packages=find_packages(exclude=("tests", "test_project")),
     install_requires=[
         "Django > 1.7"
     ],
