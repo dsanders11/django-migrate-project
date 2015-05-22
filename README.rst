@@ -48,7 +48,7 @@ Simply use `pip`_ to install::
     $ pip install django-migrate-project
 
 To be of any use ``django-migrate-project`` must be added to the Django project
-via ``INSTALLED_APPS`` in the project `settings.py` file::
+via ``INSTALLED_APPS`` in the project ``settings.py`` file::
 
     INSTALLED_APPS = (
         ...
@@ -93,5 +93,6 @@ Contributions are welcome, just create a pull request or issue on the
 `GitHub repository`_ for the project.
 
 .. _`Django`: https://djangoproject.com/
-.. _`pip`: https://pip.pypa.io/en/stable/
 .. _`GitHub repository`: https://github.com/dsanders11/django-migrate-project
+.. _`pip`: https://pip.pypa.io/en/stable/
+.. _`Python`: https://python.org/
