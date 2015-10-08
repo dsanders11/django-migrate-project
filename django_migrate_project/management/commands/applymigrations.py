@@ -19,15 +19,19 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
 
+from django_migrate_project.management.commands.migrateproject import ProjectMigrationLoader
 
-class ProjectMigrationLoader(MigrationLoader):
+
+class PendingMigrationLoader(ProjectMigrationLoader):
     def __init__(self, *args, **kwargs):
-        super(ProjectMigrationLoader, self).__init__(*args, **kwargs)
+        self.pending_migrations_dir = kwargs.pop('pending_migrations_dir')
+
+        super(PendingMigrationLoader, self).__init__(*args, **kwargs)
 
     def load_disk(self):
         """ Loads the migrations for the project from disk. """
 
-        super(ProjectMigrationLoader, self).load_disk()
+        super(PendingMigrationLoader, self).load_disk()
         all_migrations = self.disk_migrations
 
         self.project_migrations = {}
@@ -35,7 +39,7 @@ class ProjectMigrationLoader(MigrationLoader):
         self.unmigrated_apps = set()
         self.migrated_apps = set()
 
-        migrations_dir = "migrations"
+        migrations_dir = self.pending_migrations_dir
         migrations = [f for f in os.listdir(migrations_dir) if os.path.isfile(os.path.join(migrations_dir, f))]
 
         # Populate the dependencies so the graph is complete
@@ -87,7 +91,6 @@ class ProjectMigrationLoader(MigrationLoader):
                 self.migrated_apps.add(app_label)
 
                 migration = module.Migration(migration_name, app_label)
-                all_migrations[app_label, migration_name] = migration
                 self.disk_migrations[app_label, migration_name] = migration
                 self.project_migrations[app_label, migration_name] = migration
                 pending_migrations.append(migration)
@@ -124,7 +127,7 @@ class Command(MigrateCommand):
         migrations_dir = options.get('input_dir')
 
         try:
-            default_input_dir = os.path.join(settings.BASE_DIR, 'migrations')
+            default_input_dir = os.path.join(settings.BASE_DIR, 'pending_migrations')
         except AttributeError:
             default_input_dir = None
 
@@ -158,7 +161,8 @@ class Command(MigrateCommand):
                                      self.migration_progress_callback)
 
         # Replace the loader with a project-level one
-        executor.loader = ProjectMigrationLoader(connection)
+        executor.loader = PendingMigrationLoader(
+            connection, pending_migrations_dir=migrations_dir)
 
         targets = executor.loader.graph.leaf_nodes()
 
@@ -177,6 +181,11 @@ class Command(MigrateCommand):
 
                 if not migration_found:
                     targets.append((app_label, None))
+        else:
+            # Trim non-project migrations
+            for migration_key in list(targets):
+                if not migration_key in executor.loader.project_migrations.keys():
+                    targets.remove(migration_key)
 
         plan = executor.migration_plan(targets)
 
