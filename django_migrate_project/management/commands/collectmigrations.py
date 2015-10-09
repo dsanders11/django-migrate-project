@@ -247,34 +247,44 @@ class Command(BaseCommand):
             for app_label, migrations in project_migrations.items():
                 for migration_idx, migration in enumerate(migrations):
                     for dependency in copy(migration.dependencies):
-                        # If there is a project level migration for the dependency app
-                        if dependency[0] in project_migrations:
-                            other_migration = None
-                            migration_key = (dependency[0], dependency[1])
-                            migration_key = loader.check_key(migration_key, app_label) or migration_key
-                            dependency_migration = loader.get_migration(*migration_key)
+                        dep_app = dependency[0]
 
-                            for idx, migration_set in enumerate(app_migrations[dependency[0]]):
-                                if dependency_migration in migration_set:
-                                    other_migration = project_migrations[dependency[0]][idx]
+                        # If there is a project level migration for the dep app
+                        if dep_app in project_migrations:
+                            other_migration = None
+                            migration_key = (dep_app, dependency[1])
+                            result = loader.check_key(migration_key, app_label)
+                            migration_key = result or migration_key
+                            dep_mig = loader.get_migration(*migration_key)
+                            dep_migs = app_migrations[dep_app]
+
+                            for idx, migration_set in enumerate(dep_migs):
+                                if dep_mig in migration_set:
+                                    other_migs = project_migrations[dep_app]
+                                    other_migration = other_migs[idx]
                                     break
 
-                            if other_migration is None or other_migration == migration:
+                            if other_migration is None:
+                                continue
+                            elif other_migration == migration:
                                 continue
 
                             # And the dependency is a replaced migration
                             if dependency in other_migration.replaces:
                                 migration.dependencies.remove(dependency)
+                                index = self._make_name(idx)
                                 migration.dependencies.append(
-                                    (dependency[0], self._make_name(idx) + '_project'))
+                                    (dep_app, index + '_project'))
 
                     # Write the migration to disk
-                    migration_filename = app_label + '_' + self._make_name(migration_idx) + '_project.py'
-                    file_path = os.path.join(migrations_dir, migration_filename)
+                    index = self._make_name(migration_idx)
+                    filename = app_label + '_' + index + '_project.py'
+                    file_path = os.path.join(migrations_dir, filename)
                     writer = MigrationWriter(migration)
 
                     with open(file_path, 'wb') as output_file:
-                        output_file.write(writer.as_string())  # pragma: no branch
+                        output = writer.as_string()
+                        output_file.write(output)  # pragma: no branch
         except:
             # Delete the output dir to avoid a combination of new and old files
             if os.path.exists(migrations_dir):
