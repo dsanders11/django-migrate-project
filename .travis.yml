@@ -15,6 +15,13 @@ env:
   - TOXENV=py34-Django-1.8.x
   - TOXENV=py34-Django-master
 
+matrix:
+  allow_failures:
+    - env: TOXENV=py27-Django-master
+    - env: TOXENV=py32-Django-master
+    - env: TOXENV=py33-Django-master
+    - env: TOXENV=py34-Django-master
+
 install:
   - pip install coveralls
   - pip install tox
