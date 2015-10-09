@@ -234,9 +234,14 @@ class Command(BaseCommand):
 
             # Create migrations for each individual app
             for app_label in app_migrations:
-                for idx, migration_set in enumerate(app_migrations[app_label]):
-                    project_migrations[app_label].append(self.create_app_migration(
-                        app_label, self._make_name(idx), migration_set))
+                migration_sets = app_migrations[app_label]
+                for idx, migration_set in enumerate(migration_sets):
+                    index_name = self._make_name(idx)
+                    project_migrations[app_label].append(
+                        self.create_app_migration(
+                            app_label, index_name, migration_set
+                        )
+                    )
 
             # Resolve dependencies between the consolidated migrations and save
             for app_label, migrations in project_migrations.items():
@@ -290,7 +295,11 @@ class Command(BaseCommand):
 
         # Gather up the operations to perform and find dependencies
         for migration in migrations:
-            operations.extend(migration.operations)
+            # Apparently we need to reverse the operations list now
+            new_operations = list(migration.operations)
+            new_operations.reverse()
+
+            operations.extend(new_operations)
 
             for dependency in migration.dependencies:
                 different_app = (dependency[0] != migration.app_label)
@@ -299,6 +308,9 @@ class Command(BaseCommand):
                     dependencies.add(dependency)
 
         MIGRATE_HEADING = self.style.MIGRATE_HEADING
+
+        # Reverse operations list
+        operations.reverse()
 
         if self.no_optimize:
             if self.verbosity > 0:

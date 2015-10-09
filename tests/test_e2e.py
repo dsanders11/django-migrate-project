@@ -9,8 +9,11 @@ from django.db import connections, DEFAULT_DB_ALIAS
 from django.db.migrations.loader import MigrationLoader
 from django.test import TransactionTestCase
 
+from django_migrate_project.loader import DEFAULT_PENDING_MIGRATIONS_DIRECTORY
 
-DEFAULT_DIR = os.path.join(settings.BASE_DIR, 'pending_migrations')
+
+DEFAULT_DIR = os.path.join(
+    settings.BASE_DIR, DEFAULT_PENDING_MIGRATIONS_DIRECTORY)
 
 
 class MigrateProjectTest(TransactionTestCase):

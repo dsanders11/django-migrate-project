@@ -19,6 +19,8 @@ from django.core.management.base import CommandError
 from django.test import override_settings, TransactionTestCase
 from django.utils import six
 
+from django_migrate_project.loader import DEFAULT_PENDING_MIGRATIONS_DIRECTORY
+
 import mock
 
 
@@ -26,7 +28,8 @@ BLOG_FULL_MIGRATION_OPERATION_COUNT = 2
 COOKBOOK_FULL_MIGRATION_OPERATION_COUNT = 8
 COOKBOOK_UNOPTIMIZED_FULL_MIGRATION_OPERATION_COUNT = 11
 
-DEFAULT_DIR = os.path.join(settings.BASE_DIR, 'pending_migrations')
+DEFAULT_DIR = os.path.join(
+    settings.BASE_DIR, DEFAULT_PENDING_MIGRATIONS_DIRECTORY)
 
 
 class CollectMigrationsTest(TransactionTestCase):

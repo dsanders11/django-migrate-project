@@ -17,6 +17,8 @@ from django.core.management.base import CommandError
 from django.test import modify_settings, override_settings, TransactionTestCase
 from django.utils import six
 
+from django_migrate_project.loader import DEFAULT_PENDING_MIGRATIONS_DIRECTORY
+
 import mock
 
 
@@ -293,7 +295,8 @@ class ApplyMigrationsTest(TransactionTestCase):
         try:
             shutil.copytree(
                 INITIAL_MIGRATION_DIR,
-                os.path.join(settings.BASE_DIR, 'pending_migrations')
+                os.path.join(
+                    settings.BASE_DIR, DEFAULT_PENDING_MIGRATIONS_DIRECTORY)
             )
 
             connection = connections[DEFAULT_DB_ALIAS]
