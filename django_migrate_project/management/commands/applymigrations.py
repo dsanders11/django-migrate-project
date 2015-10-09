@@ -100,7 +100,13 @@ class Command(MigrateCommand):
                 migration_found = False
 
                 for dependency in migration.dependencies:
-                    if dependency[0] == app_label:
+                    pending = dependency in pending_migration_keys
+
+                    if dependency[0] == app_label and not pending:
+                        result = executor.loader.check_key(dependency,
+                                                           app_label)
+                        dependency = result or dependency
+
                         targets.append(dependency)
                         migration_found = True
 

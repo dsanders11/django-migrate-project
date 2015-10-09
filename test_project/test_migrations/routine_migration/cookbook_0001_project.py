@@ -6,9 +6,10 @@ from django.db import models, migrations
 
 class Migration(migrations.Migration):
 
-    replaces = [('cookbook', '0004_auto_20150515_0006'), ('cookbook', '0005_cookware')]
+    replaces = [('cookbook', '0004_auto_20150515_0006'), ('cookbook', '0005_cookware'), ('cookbook', '0006_ingredient_tags')]
 
     dependencies = [
+        ('blog', '0001_project'),
         ('cookbook', '0003_auto_20150514_1515'),
     ]
 
@@ -30,5 +31,10 @@ class Migration(migrations.Migration):
             options={
             },
             bases=(models.Model,),
+        ),
+        migrations.AddField(
+            model_name='ingredient',
+            name='tags',
+            field=models.ManyToManyField(to='blog.Tag'),
         ),
     ]

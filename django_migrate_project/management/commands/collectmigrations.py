@@ -13,6 +13,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connections, DEFAULT_DB_ALIAS
 from django.db.migrations import Migration
+from django.db.migrations.graph import CircularDependencyError
 from django.db.migrations.optimizer import MigrationOptimizer
 from django.db.migrations.writer import MigrationWriter
 
@@ -151,7 +152,7 @@ class Command(BaseCommand):
                     if migration not in new_app_migrations[app_label][0]:
                         new_app_migrations[app_label][0].append(migration)
                 for dep_key in migration.dependencies:
-                    walk_nodes(current_app, dep_key)
+                    walk_nodes(app_label, dep_key)
 
         for migration_key in loader.graph.leaf_nodes():
             app_label, migration_name = migration_key
@@ -169,8 +170,9 @@ class Command(BaseCommand):
 
             def walk_dependencies(migration, app_set):
                 migration_key = (migration.app_label, migration.name)
-                backwards_plan = loader.graph.backwards_plan(migration_key)
-                for dependency in list(backwards_plan)[:-1]:
+                forwards_plan = loader.graph.forwards_plan(migration_key)
+
+                for dependency in list(forwards_plan)[:-1]:
                     app_label, migration_name = dependency
 
                     if app_label not in migrating_apps:
@@ -186,7 +188,7 @@ class Command(BaseCommand):
 
             if dependent_apps_1.intersection(dependent_apps_2):
                 return _find_common_ancestors([node1, node2])
-            else:
+            else:  # pragma: no cover
                 return []
 
         for migration_key in leaf_nodes:
@@ -209,8 +211,8 @@ class Command(BaseCommand):
                 migration = loader.get_migration(app_label, migration_name)
 
                 # Check if we need to split out migrations to prevent cycles
-                for migrations in new_app_migrations[app_label]:
-                    if migration in migrations:
+                for migrations in new_app_migrations[app_label]:  # pragma: nb
+                    if migration in migrations:  # pragma: no branch
                         idx = migrations.index(migration)
                         split_migration = migrations[idx:]
                         new_app_migrations[app_label].insert(
@@ -266,7 +268,7 @@ class Command(BaseCommand):
 
                         # If there is a project level migration for the dep app
                         if dep_app in project_migrations:
-                            other_migration = None
+                            other = None
                             migration_key = (dep_app, dependency[1])
                             result = loader.check_key(migration_key, app_label)
                             migration_key = result or migration_key
@@ -276,16 +278,19 @@ class Command(BaseCommand):
                             for idx, migration_set in enumerate(dep_migs):
                                 if dep_mig in migration_set:
                                     other_migs = project_migrations[dep_app]
-                                    other_migration = other_migs[idx]
+                                    other = other_migs[idx]
                                     break
 
-                            if other_migration is None:
+                            if other is None:
                                 continue
-                            elif other_migration == migration:
-                                continue
+                            elif other == migration:  # pragma: no cover
+                                raise CircularDependencyError(
+                                    "Migration has self for "
+                                    "dependency: %s" % (migration,)
+                                )
 
                             # And the dependency is a replaced migration
-                            if dependency in other_migration.replaces:
+                            if dependency in other.replaces:
                                 migration.dependencies.remove(dependency)
                                 index = self._make_name(idx)
                                 migration.dependencies.append(

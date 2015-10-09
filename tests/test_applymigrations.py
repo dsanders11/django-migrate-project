@@ -167,7 +167,7 @@ class ApplyMigrationsTest(TransactionTestCase):
         """ Test an edge case where migration dependency is fully migrated """
 
         # Fully migrate the app the project migration depends on
-        call_command('migrate', 'cookbook', verbosity=0)
+        call_command('migrate', 'blog', verbosity=0)
 
         module = 'django_migrate_project.management.commands.applymigrations'
         get_app_configs_path = module + '.apps.get_app_configs'

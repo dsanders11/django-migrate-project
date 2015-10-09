@@ -23,6 +23,7 @@ class Cookware(models.Model):
 class Ingredient(models.Model):
     name = models.CharField(max_length=32)
     recipes = models.ManyToManyField('Recipe', through=RecipeIngredient)
+    tags = models.ManyToManyField('blog.Tag')
 
 
 class Category(models.Model):

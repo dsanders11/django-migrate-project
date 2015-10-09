@@ -24,9 +24,9 @@ from django_migrate_project.loader import DEFAULT_PENDING_MIGRATIONS_DIRECTORY
 import mock
 
 
-BLOG_FULL_MIGRATION_OPERATION_COUNT = 2
-COOKBOOK_FULL_MIGRATION_OPERATION_COUNT = 8
-COOKBOOK_UNOPTIMIZED_FULL_MIGRATION_OPERATION_COUNT = 11
+BLOG_FULL_MIGRATION_OPERATION_COUNT = [3]
+COOKBOOK_FULL_MIGRATION_OPERATION_COUNT = [5, 4]
+COOKBOOK_UNOPTIMIZED_FULL_MIGRATION_OPERATION_COUNT = [5, 7]
 
 DEFAULT_DIR = os.path.join(
     settings.BASE_DIR, DEFAULT_PENDING_MIGRATIONS_DIRECTORY)
@@ -48,12 +48,20 @@ class CollectMigrationsTest(TransactionTestCase):
     def load_migrations(self, dir=DEFAULT_DIR):
         """ Load migration source files from disk """
 
-        blog_migrations = load_source(
-            'blog_migrations', os.path.join(dir, 'blog_0001_project.py'))
-        cookbook_migrations = load_source(
+        blog_migrations = [load_source(
+            'blog_migrations', os.path.join(dir, 'blog_0001_project.py'))]
+        cookbook_migrations = [load_source(
             'cookbook_migrations',
             os.path.join(dir, 'cookbook_0001_project.py')
-        )
+        )]
+
+        try:
+            cookbook_migrations.append(load_source(
+                'cookbook_migrations2',
+                os.path.join(dir, 'cookbook_0002_project.py')
+            ))
+        except IOError:
+            pass
 
         return blog_migrations, cookbook_migrations
 
@@ -87,19 +95,28 @@ class CollectMigrationsTest(TransactionTestCase):
             self.assertIn("optimized from", out.getvalue().lower())
 
             # Check that migrations have the correct number of operations
-            self.assertEqual(len(blog_migrations.Migration.operations),
-                             BLOG_FULL_MIGRATION_OPERATION_COUNT)
-            self.assertEqual(len(cookbook_migrations.Migration.operations),
-                             COOKBOOK_FULL_MIGRATION_OPERATION_COUNT)
+            self.assertEqual(len(blog_migrations[0].Migration.operations),
+                             BLOG_FULL_MIGRATION_OPERATION_COUNT[0])
+            self.assertEqual(len(cookbook_migrations[0].Migration.operations),
+                             COOKBOOK_FULL_MIGRATION_OPERATION_COUNT[0])
+            self.assertEqual(len(cookbook_migrations[1].Migration.operations),
+                             COOKBOOK_FULL_MIGRATION_OPERATION_COUNT[1])
 
             # Check the migration dependencies
-            self.assertEqual(blog_migrations.Migration.dependencies,
-                             [('cookbook', '__first__')])
-            self.assertEqual(cookbook_migrations.Migration.dependencies, [])
+            self.assertEqual(
+                blog_migrations[0].Migration.dependencies,
+                [('cookbook', '__first__'), ('auth', '__first__')]
+            )
+            self.assertEqual(cookbook_migrations[0].Migration.dependencies, [])
+            self.assertEqual(
+                cookbook_migrations[1].Migration.dependencies,
+                [('blog', '0001_project'), ('cookbook', '0001_project')]
+            )
 
             # Check the migration replaces count
-            self.assertEqual(len(blog_migrations.Migration.replaces), 2)
-            self.assertEqual(len(cookbook_migrations.Migration.replaces), 5)
+            self.assertEqual(len(blog_migrations[0].Migration.replaces), 3)
+            self.assertEqual(len(cookbook_migrations[0].Migration.replaces), 1)
+            self.assertEqual(len(cookbook_migrations[1].Migration.replaces), 5)
 
     def test_migration_needed(self):
         """ Test collecting migrations when apps need non-initial migration """
@@ -118,20 +135,22 @@ class CollectMigrationsTest(TransactionTestCase):
         blog_migrations, cookbook_migrations = self.load_migrations()
 
         # Check the migration dependencies
-        self.assertEqual(blog_migrations.Migration.dependencies,
-                         [('blog', '0001_initial')])
-        self.assertEqual(cookbook_migrations.Migration.dependencies,
-                         [('cookbook', '0003_auto_20150514_1515')])
+        self.assertEqual(blog_migrations[0].Migration.dependencies,
+                         [('auth', '__first__'), ('blog', '0001_initial')])
+        self.assertEqual(
+            cookbook_migrations[0].Migration.dependencies,
+            [('cookbook', '0003_auto_20150514_1515'), ('blog', '0001_project')]
+        )
 
         # Check the migration replaces count
-        self.assertEqual(len(blog_migrations.Migration.replaces), 1)
-        self.assertEqual(len(cookbook_migrations.Migration.replaces), 2)
+        self.assertEqual(len(blog_migrations[0].Migration.replaces), 2)
+        self.assertEqual(len(cookbook_migrations[0].Migration.replaces), 3)
 
     def test_single_app_migration(self):
         """ Test collecting migrations when a single app needs a migration """
 
-        # Migrate 'cookbook' all the way so only 'blog' is unmigrated
-        call_command('migrate', 'cookbook', verbosity=0)
+        # Migrate 'blog' all the way so only 'cookbook' is unmigrated
+        call_command('migrate', 'blog', verbosity=0)
 
         call_command('collectmigrations', verbosity=0)
         blog_migrations = os.path.join(DEFAULT_DIR, 'blog_0001_project.py')
@@ -139,8 +158,8 @@ class CollectMigrationsTest(TransactionTestCase):
             DEFAULT_DIR, 'cookbook_0001_project.py')
 
         self.assertTrue(path_exists(DEFAULT_DIR))
-        self.assertTrue(path_exists(blog_migrations))
-        self.assertFalse(path_exists(cookbook_migrations))
+        self.assertTrue(path_exists(cookbook_migrations))
+        self.assertFalse(path_exists(blog_migrations))
 
     def test_path_exists(self):
         """ Test collecting migrations when a previous collection exists """
@@ -239,10 +258,16 @@ class CollectMigrationsTest(TransactionTestCase):
         blog_migrations, cookbook_migrations = self.load_migrations()
 
         # Check no optimization took place
-        self.assertEqual(len(blog_migrations.Migration.operations),
-                         BLOG_FULL_MIGRATION_OPERATION_COUNT)
-        self.assertEqual(len(cookbook_migrations.Migration.operations),
-                         COOKBOOK_UNOPTIMIZED_FULL_MIGRATION_OPERATION_COUNT)
+        self.assertEqual(len(blog_migrations[0].Migration.operations),
+                         BLOG_FULL_MIGRATION_OPERATION_COUNT[0])
+        self.assertEqual(
+            len(cookbook_migrations[0].Migration.operations),
+            COOKBOOK_UNOPTIMIZED_FULL_MIGRATION_OPERATION_COUNT[0]
+        )
+        self.assertEqual(
+            len(cookbook_migrations[1].Migration.operations),
+            COOKBOOK_UNOPTIMIZED_FULL_MIGRATION_OPERATION_COUNT[1]
+        )
 
         # One more time with no verbosity for full branch coverage
         call_command('collectmigrations', no_optimize=True, verbosity=0)
