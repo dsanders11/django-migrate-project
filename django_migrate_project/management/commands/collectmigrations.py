@@ -123,23 +123,33 @@ class Command(BaseCommand):
             # Grab out the migrations in question, and work out their
             # common ancestor.
             migrations = []
-            for app_label, migration_name in nodes:
-                migration = loader.get_migration(app_label, migration_name)
-                migration.ancestry = [node for node in loader.graph.forwards_plan((app_label, migration_name)) if node not in loader.applied_migrations and node not in leaf_nodes]
+            for migration_key in nodes:
+                migration = loader.get_migration(*migration_key)
+                forwards_plan = loader.graph.forwards_plan(migration_key)
+                applied = loader.applied_migrations
+
+                def valid_node(node):
+                    return node not in applied and node not in leaf_nodes
+
+                ancestry = [node for node in forwards_plan if valid_node(node)]
+                migration.ancestry = ancestry
                 migrations.append(migration)
-            all_items_equal = lambda seq: all(item == seq[0] for item in seq[1:])
-            migrations_generations = zip(*[m.ancestry for m in migrations])
-            common_ancestors = takewhile(all_items_equal, migrations_generations)
+            items_equal = lambda seq: all(item == seq[0] for item in seq[1:])
+            migrations_gens = zip(*[m.ancestry for m in migrations])
+            common_ancestors = takewhile(items_equal, migrations_gens)
+
             return list(common_ancestors)
 
         def walk_nodes(current_app, migration_key):
             if migration_key not in loader.applied_migrations:
                 app_label, migration_name = migration_key
-                migration_key = loader.check_key(migration_key, current_app) or migration_key
+                key_result = loader.check_key(migration_key, current_app)
+                migration_key = key_result or migration_key
                 migration = loader.get_migration(*migration_key)
 
-                if app_label == current_app and migration not in new_app_migrations[app_label][0]:
-                    new_app_migrations[app_label][0].append(migration)
+                if app_label == current_app:
+                    if migration not in new_app_migrations[app_label][0]:
+                        new_app_migrations[app_label][0].append(migration)
                 for dep_key in migration.dependencies:
                     walk_nodes(current_app, dep_key)
 
