@@ -158,7 +158,9 @@ class Command(BaseCommand):
             migration2 = loader.get_migration(node2[0], node2[1])
 
             def walk_dependencies(migration, app_set):
-                for dependency in list(loader.graph.backwards_plan((migration.app_label, migration.name)))[:-1]:
+                migration_key = (migration.app_label, migration.name)
+                backwards_plan = loader.graph.backwards_plan(migration_key)
+                for dependency in list(backwards_plan)[:-1]:
                     app_label, migration_name = dependency
 
                     if app_label not in migrating_apps:
@@ -166,7 +168,7 @@ class Command(BaseCommand):
                     else:
                         app_set.add(app_label)
 
-                    dep_migration = loader.get_migration(app_label, migration_name)
+                    dep_migration = loader.get_migration(*dependency)
                     walk_dependencies(dep_migration, app_set)
 
             walk_dependencies(migration1, dependent_apps_1)
@@ -186,7 +188,9 @@ class Command(BaseCommand):
         app_pairs = combinations(migrating_apps, 2)
 
         for app_pair in app_pairs:
-            common_ancestors = find_common_ancestors(new_app_leaf_migrations[app_pair[0]], new_app_leaf_migrations[app_pair[1]])
+            migration1 = new_app_leaf_migrations[app_pair[0]]
+            migration2 = new_app_leaf_migrations[app_pair[1]]
+            common_ancestors = find_common_ancestors(migration1, migration2)
 
             if common_ancestors:
                 most_recently_common = common_ancestors[-1][0]
@@ -199,7 +203,8 @@ class Command(BaseCommand):
                     if migration in migrations:
                         idx = migrations.index(migration)
                         split_migration = migrations[idx:]
-                        new_app_migrations[app_label].insert(0, split_migration)
+                        new_app_migrations[app_label].insert(
+                            0, split_migration)
 
                         for migration in split_migration:
                             migrations.remove(migration)
