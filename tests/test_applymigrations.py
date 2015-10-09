@@ -29,8 +29,8 @@ DEPENDENCY_EDGE_MIGRATION_DIR = os.path.join(
     TEST_MIGRATIONS_DIR, 'dependency_edge_case')
 
 
-class MigrateProjectTest(TransactionTestCase):
-    """ Tests for 'migrateproject' """
+class ApplyMigrationsTest(TransactionTestCase):
+    """ Tests for 'applymigrations' """
 
     def setUp(self):
         # Roll back migrations to a blank state
@@ -42,8 +42,8 @@ class MigrateProjectTest(TransactionTestCase):
 
     def clear_migrations_modules(self):
         # Destroy modules that were loaded for migrations
-        sys.modules.pop("blog_migrations", None)
-        sys.modules.pop("cookbook_migrations", None)
+        sys.modules.pop("blog_0001_project", None)
+        sys.modules.pop("cookbook_0001_project", None)
 
     def test_unapply(self):
         """ Test unapplying an applied project migration """
@@ -52,8 +52,8 @@ class MigrateProjectTest(TransactionTestCase):
         loader = MigrationLoader(connection)
         applied_migrations = copy(loader.applied_migrations)
 
-        # Applied via migrateproject and then unapplied
-        call_command('migrateproject', input_dir=INITIAL_MIGRATION_DIR,
+        # Applied via applymigrations and then unapplied
+        call_command('applymigrations', input_dir=INITIAL_MIGRATION_DIR,
                      verbosity=0)
 
         # Check that database changed
@@ -61,7 +61,7 @@ class MigrateProjectTest(TransactionTestCase):
         self.assertNotEqual(loader.applied_migrations, applied_migrations)
 
         out = six.StringIO()
-        call_command('migrateproject', unapply=True, stdout=out, verbosity=1,
+        call_command('applymigrations', unapply=True, stdout=out, verbosity=1,
                      input_dir=INITIAL_MIGRATION_DIR)
 
         # Check that it sas it was unapplied
@@ -83,8 +83,8 @@ class MigrateProjectTest(TransactionTestCase):
         loader = MigrationLoader(connection)
         applied_migrations = copy(loader.applied_migrations)
 
-        # Applied via migrateproject and then unapplied
-        call_command('migrateproject', input_dir=ROUTINE_MIGRATION_DIR,
+        # Applied via applymigrations and then unapplied
+        call_command('applymigrations', input_dir=ROUTINE_MIGRATION_DIR,
                      verbosity=0)
 
         # Check that database changed
@@ -92,7 +92,7 @@ class MigrateProjectTest(TransactionTestCase):
         self.assertNotEqual(loader.applied_migrations, applied_migrations)
 
         out = six.StringIO()
-        call_command('migrateproject', unapply=True, stdout=out, verbosity=1,
+        call_command('applymigrations', unapply=True, stdout=out, verbosity=1,
                      input_dir=ROUTINE_MIGRATION_DIR)
 
         # Check that they were unapplied
@@ -106,8 +106,8 @@ class MigrateProjectTest(TransactionTestCase):
     def test_nothing_to_apply(self):
         """ Test applying already applied project migration """
 
-        # Applied via migrateproject and then again
-        call_command('migrateproject', input_dir=INITIAL_MIGRATION_DIR,
+        # Applied via applymigrations and then again
+        call_command('applymigrations', input_dir=INITIAL_MIGRATION_DIR,
                      verbosity=0)
 
         connection = connections[DEFAULT_DB_ALIAS]
@@ -115,7 +115,7 @@ class MigrateProjectTest(TransactionTestCase):
         applied_migrations = copy(loader.applied_migrations)
 
         out = six.StringIO()
-        call_command('migrateproject', stdout=out, verbosity=1,
+        call_command('applymigrations', stdout=out, verbosity=1,
                      input_dir=INITIAL_MIGRATION_DIR)
 
         # Check that it says nothing was applied
@@ -129,14 +129,14 @@ class MigrateProjectTest(TransactionTestCase):
         call_command('migrate', 'blog', 'zero', verbosity=0)
         call_command('migrate', 'cookbook', 'zero', verbosity=0)
 
-        # Applied via migrate and then again migrateproject
+        # Applied via migrate and then again applymigrations
         call_command('migrate', verbosity=0)
 
         loader = MigrationLoader(connection)
         applied_migrations = copy(loader.applied_migrations)
 
         out = six.StringIO()
-        call_command('migrateproject', stdout=out, verbosity=1,
+        call_command('applymigrations', stdout=out, verbosity=1,
                      input_dir=INITIAL_MIGRATION_DIR)
 
         # Check that it says nothing was applied
@@ -147,14 +147,14 @@ class MigrateProjectTest(TransactionTestCase):
         self.assertEqual(loader.applied_migrations, applied_migrations)
 
         # One more time, with no verbosity for full branch coverage
-        call_command('migrateproject', verbosity=0,
+        call_command('applymigrations', verbosity=0,
                      input_dir=INITIAL_MIGRATION_DIR)
 
     def test_human_output(self):
         """ Test the human visible output of the migration """
 
         out = six.StringIO()
-        call_command('migrateproject', stdout=out, verbosity=1,
+        call_command('applymigrations', stdout=out, verbosity=1,
                      input_dir=INITIAL_MIGRATION_DIR)
 
         self.assertIn("running", out.getvalue().lower())
@@ -166,7 +166,7 @@ class MigrateProjectTest(TransactionTestCase):
         # Fully migrate the app the project migration depends on
         call_command('migrate', 'cookbook', verbosity=0)
 
-        module = 'django_migrate_project.management.commands.migrateproject'
+        module = 'django_migrate_project.management.commands.applymigrations'
         get_app_configs_path = module + '.apps.get_app_configs'
 
         app_configs = apps.get_app_configs()
@@ -180,7 +180,7 @@ class MigrateProjectTest(TransactionTestCase):
             loader = MigrationLoader(connection)
             applied_migrations = copy(loader.applied_migrations)
 
-            call_command('migrateproject', verbosity=0,
+            call_command('applymigrations', verbosity=0,
                          input_dir=DEPENDENCY_EDGE_MIGRATION_DIR)
 
             # Check that database changed
@@ -209,17 +209,17 @@ class MigrateProjectTest(TransactionTestCase):
         """ Test a migration with model changes detected """
 
         # Migrate first, so that no migrations are available to apply
-        call_command('migrateproject', verbosity=0,
+        call_command('applymigrations', verbosity=0,
                      input_dir=INITIAL_MIGRATION_DIR)
 
-        module = 'django_migrate_project.management.commands.migrateproject'
+        module = 'django_migrate_project.management.commands.applymigrations'
         changes_path = module + '.MigrationAutodetector.changes'
 
         with mock.patch(changes_path) as changes:
             changes.return_value = True
 
             out = six.StringIO()
-            call_command('migrateproject', stdout=out, verbosity=1,
+            call_command('applymigrations', stdout=out, verbosity=1,
                          input_dir=INITIAL_MIGRATION_DIR)
 
             self.assertIn("have changes", out.getvalue().lower())
@@ -236,7 +236,7 @@ class MigrateProjectTest(TransactionTestCase):
         loader = MigrationLoader(connection)
         applied_migrations = copy(loader.applied_migrations)
 
-        call_command('migrateproject', input_dir=ROUTINE_MIGRATION_DIR,
+        call_command('applymigrations', input_dir=ROUTINE_MIGRATION_DIR,
                      verbosity=0)
 
         # Check that database changed
@@ -250,7 +250,7 @@ class MigrateProjectTest(TransactionTestCase):
         loader = MigrationLoader(connection)
         applied_migrations = copy(loader.applied_migrations)
 
-        call_command('migrateproject', input_dir=UNOPTIMIZED_MIGRATION_DIR,
+        call_command('applymigrations', input_dir=UNOPTIMIZED_MIGRATION_DIR,
                      verbosity=0)
 
         # Check that database changed
@@ -261,7 +261,7 @@ class MigrateProjectTest(TransactionTestCase):
         """ Test running the management command with bad input dir option """
 
         with self.assertRaises(CommandError):
-            call_command('migrateproject', input_dir="", verbosity=0)
+            call_command('applymigrations', input_dir="", verbosity=0)
 
         try:
             base_dir = tempfile.mkdtemp()
@@ -269,11 +269,11 @@ class MigrateProjectTest(TransactionTestCase):
 
             # Non-existent dir
             with self.assertRaises(CommandError):
-                call_command('migrateproject', input_dir=dir, verbosity=0)
+                call_command('applymigrations', input_dir=dir, verbosity=0)
 
             # Empty dir
             with self.assertRaises(CommandError):
-                call_command('migrateproject', input_dir=base_dir, verbosity=0)
+                call_command('applymigrations', input_dir=base_dir, verbosity=0)
         finally:
             shutil.rmtree(base_dir)
 
@@ -281,7 +281,7 @@ class MigrateProjectTest(TransactionTestCase):
             del settings.BASE_DIR  # Simulate it not being set in settings
 
             with self.assertRaises(CommandError):
-                call_command('migrateproject', verbosity=0)
+                call_command('applymigrations', verbosity=0)
 
     @override_settings(BASE_DIR=tempfile.mkdtemp())
     def test_default_dir(self):
@@ -289,13 +289,13 @@ class MigrateProjectTest(TransactionTestCase):
 
         try:
             shutil.copytree(INITIAL_MIGRATION_DIR,
-                            os.path.join(settings.BASE_DIR, 'migrations'))
+                            os.path.join(settings.BASE_DIR, 'pending_migrations'))
 
             connection = connections[DEFAULT_DB_ALIAS]
             loader = MigrationLoader(connection)
             applied_migrations = copy(loader.applied_migrations)
 
-            call_command('migrateproject', verbosity=0)
+            call_command('applymigrations', verbosity=0)
 
             loader = MigrationLoader(connection)
 
@@ -321,7 +321,7 @@ class MigrateProjectTest(TransactionTestCase):
         default_applied_migrations = copy(default_loader.applied_migrations)
         applied_migrations = copy(loader.applied_migrations)
 
-        call_command('migrateproject', database='other', verbosity=0,
+        call_command('applymigrations', database='other', verbosity=0,
                      input_dir=INITIAL_MIGRATION_DIR)
 
         default_loader = MigrationLoader(default_connection)

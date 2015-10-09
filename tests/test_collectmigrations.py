@@ -26,7 +26,7 @@ BLOG_FULL_MIGRATION_OPERATION_COUNT = 2
 COOKBOOK_FULL_MIGRATION_OPERATION_COUNT = 8
 COOKBOOK_UNOPTIMIZED_FULL_MIGRATION_OPERATION_COUNT = 11
 
-DEFAULT_DIR = os.path.join(settings.BASE_DIR, 'migrations')
+DEFAULT_DIR = os.path.join(settings.BASE_DIR, 'pending_migrations')
 
 
 class CollectMigrationsTest(TransactionTestCase):
@@ -46,9 +46,9 @@ class CollectMigrationsTest(TransactionTestCase):
         """ Load migration source files from disk """
 
         blog_migrations = load_source(
-            'blog_migrations', os.path.join(dir, 'blog_migrations.py'))
+            'blog_migrations', os.path.join(dir, 'blog_0001_project.py'))
         cookbook_migrations = load_source(
-            'cookbook_migrations', os.path.join(dir, 'cookbook_migrations.py'))
+            'cookbook_migrations', os.path.join(dir, 'cookbook_0001_project.py'))
 
         return blog_migrations, cookbook_migrations
 
@@ -89,7 +89,7 @@ class CollectMigrationsTest(TransactionTestCase):
 
             # Check the migration dependencies
             self.assertEqual(blog_migrations.Migration.dependencies,
-                             [('cookbook', 'project_migration')])
+                             [('cookbook', '0001_project')])
             self.assertEqual(cookbook_migrations.Migration.dependencies, [])
 
             # Check the migration replaces count
@@ -129,9 +129,9 @@ class CollectMigrationsTest(TransactionTestCase):
         call_command('migrate', 'cookbook', verbosity=0)
 
         call_command('collectmigrations', verbosity=0)
-        blog_migrations = os.path.join(DEFAULT_DIR, 'blog_migrations.py')
+        blog_migrations = os.path.join(DEFAULT_DIR, 'blog_0001_project.py')
         cookbook_migrations = os.path.join(
-            DEFAULT_DIR, 'cookbook_migrations.py')
+            DEFAULT_DIR, 'cookbook_0001_project.py')
 
         self.assertTrue(path_exists(DEFAULT_DIR))
         self.assertTrue(path_exists(blog_migrations))
@@ -144,7 +144,7 @@ class CollectMigrationsTest(TransactionTestCase):
 
         # Test outputting to both the default directory and a custom directory
         for output_dir in (DEFAULT_DIR, custom_dir):
-            blog_migrations = os.path.join(output_dir, 'blog_migrations.py')
+            blog_migrations = os.path.join(output_dir, 'blog_0001_project.py')
 
             try:
                 # Do a normal collection to fill the directory to start

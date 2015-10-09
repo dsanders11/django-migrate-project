@@ -10,7 +10,7 @@ from django.db.migrations.loader import MigrationLoader
 from django.test import TransactionTestCase
 
 
-DEFAULT_DIR = os.path.join(settings.BASE_DIR, 'migrations')
+DEFAULT_DIR = os.path.join(settings.BASE_DIR, 'pending_migrations')
 
 
 class MigrateProjectTest(TransactionTestCase):
@@ -38,7 +38,7 @@ class MigrateProjectTest(TransactionTestCase):
 
         # Collect migrations and migrate the test project
         call_command('collectmigrations', verbosity=0)
-        call_command('migrateproject', verbosity=0)
+        call_command('applymigrations', verbosity=0)
 
         # Check that database changed
         loader = MigrationLoader(connection)

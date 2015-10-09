@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     replaces = [('blog', '0001_initial'), ('blog', '0002_tag')]
 
     dependencies = [
-        ('cookbook', 'project_migration'),
+        ('cookbook', '0001_project'),
     ]
 
     operations = [
