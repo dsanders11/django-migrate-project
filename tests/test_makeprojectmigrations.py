@@ -1,31 +1,26 @@
 from __future__ import unicode_literals
 
-from imp import load_source
-from os.path import exists as path_exists
-from unittest import skip
-
-# Python 3 compatibility
-try:
-    import __builtin__ as builtins
-except ImportError:
-    import builtins
-
 import os
 import shutil
-import tempfile
 
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import override_settings, TransactionTestCase
+from django.test import TransactionTestCase
 from django.utils import six
 
-import django
-
-import mock
+from django_migrate_project.loader import PROJECT_MIGRATIONS_MODULE_NAME
 
 
-MIGRATIONS_DIR = os.path.join(settings.BASE_DIR, 'migrations')
+MIGRATIONS_DIR = os.path.join(
+    settings.BASE_DIR, PROJECT_MIGRATIONS_MODULE_NAME)
+
+EXPECTED_MIGRATIONS = sorted([
+    '__init__.py',
+    'event_calendar_0001_initial.py',
+    'newspaper_0001_initial.py'
+])
+
 
 class MakeProjectMigrationsTest(TransactionTestCase):
     """ Tests for 'makeprojectmigrations' """
@@ -57,7 +52,7 @@ class MakeProjectMigrationsTest(TransactionTestCase):
 
         call_command('makeprojectmigrations', verbosity=0)
         self.assertEqual(sorted(os.listdir(MIGRATIONS_DIR)),
-            sorted(['__init__.py', 'event_calendar_0001_initial.py']))
+                         EXPECTED_MIGRATIONS)
 
     def test_unapplied_migrations(self):
         """ Test behavior if third-party apps have unapplied migrations """
@@ -65,7 +60,7 @@ class MakeProjectMigrationsTest(TransactionTestCase):
         # Should behave the same as if the migrations are applied
         call_command('makeprojectmigrations', verbosity=0)
         self.assertEqual(sorted(os.listdir(MIGRATIONS_DIR)),
-            sorted(['__init__.py', 'event_calendar_0001_initial.py']))
+                         EXPECTED_MIGRATIONS)
 
     def test_bad_migrations_folder(self):
         """ Test error conditions with the project-level migrations folder """
@@ -97,11 +92,28 @@ class MakeProjectMigrationsTest(TransactionTestCase):
 
         # Confirm the migration looks like we expect
         self.assertIn("name='event'", out.getvalue().lower())
+        self.assertIn("name='article'", out.getvalue().lower())
         self.assertIn("createmodel", out.getvalue().lower())
-        self.assertEqual(out.getvalue().count("class "), 1)
+        self.assertEqual(out.getvalue().count("class "), 2)
 
         # No migrations on disk
-        self.assertEqual(os.listdir(MIGRATIONS_DIR), ['__init__.py'])         
+        self.assertEqual(os.listdir(MIGRATIONS_DIR), ['__init__.py'])
+
+        out = six.StringIO()
+
+        # Verbosity below 3 doesn't output the migrations content
+        call_command('makeprojectmigrations', dry_run=True, stdout=out,
+                     verbosity=2)
+
+        # Confirm the migration looks like we expect
+        self.assertIn("migrations for", out.getvalue().lower())
+        self.assertNotIn("name='event'", out.getvalue().lower())
+        self.assertNotIn("name='article'", out.getvalue().lower())
+        self.assertNotIn("createmodel", out.getvalue().lower())
+        self.assertEqual(out.getvalue().count("class "), 0)
+
+        # No migrations on disk
+        self.assertEqual(os.listdir(MIGRATIONS_DIR), ['__init__.py'])
 
     def test_no_migrations(self):
         """ Test running the command when no migrations are needed """
@@ -119,7 +131,7 @@ class MakeProjectMigrationsTest(TransactionTestCase):
         migrations_files = sorted(os.listdir(MIGRATIONS_DIR))
 
         self.assertEqual([x for x in migrations_files if x.endswith('.py')],
-            sorted(['__init__.py', 'event_calendar_0001_initial.py']))
+                         EXPECTED_MIGRATIONS)
 
     def test_project_migrations_setting(self):
         """ Test the behavior with various PROJECT_MIGRATIONS values """
@@ -128,14 +140,32 @@ class MakeProjectMigrationsTest(TransactionTestCase):
         with self.settings(PROJECT_MIGRATIONS=[]):
             out = six.StringIO()
 
-            # Now there should be nothing to migrate
+            # Now the only to migrate should be 'newspaper'
             call_command('makeprojectmigrations', stdout=out, verbosity=3)
 
-            self.assertIn("no changes", out.getvalue().lower())
+            self.assertIn("migrations for", out.getvalue().lower())
+            self.assertIn("newspaper", out.getvalue().lower())
 
-            migrations_files = sorted(os.listdir(MIGRATIONS_DIR))
+            self.assertEqual(sorted(os.listdir(MIGRATIONS_DIR)),
+                             ['__init__.py', 'newspaper_0001_initial.py'])
 
-            self.assertEqual(os.listdir(MIGRATIONS_DIR), ['__init__.py'])
+        self.tearDown()
+        self.setUp()
+
+        # Setting missing all together
+        with self.settings():
+            del settings.PROJECT_MIGRATIONS
+
+            out = six.StringIO()
+
+            # Now the only to migrate should be 'newspaper'
+            call_command('makeprojectmigrations', stdout=out, verbosity=3)
+
+            self.assertIn("migrations for", out.getvalue().lower())
+            self.assertIn("newspaper", out.getvalue().lower())
+
+            self.assertEqual(sorted(os.listdir(MIGRATIONS_DIR)),
+                             ['__init__.py', 'newspaper_0001_initial.py'])
 
     def test_monkey_patch(self):
         """ Test the behavior of the command when monkey patching apps """
@@ -153,10 +183,12 @@ class MakeProjectMigrationsTest(TransactionTestCase):
 
             migrations_files = sorted(os.listdir(MIGRATIONS_DIR))
 
-            self.assertEqual(len(migrations_files), 3)
+            self.assertEqual(len(migrations_files), 4)
             self.assertEqual('__init__.py', migrations_files[0])
             self.assertEqual('event_calendar_0001_initial.py',
                              migrations_files[2])
+            self.assertEqual('newspaper_0001_initial.py',
+                             migrations_files[3])
             self.assertTrue(migrations_files[1].startswith('auth_'))
         finally:
             field.blank = True

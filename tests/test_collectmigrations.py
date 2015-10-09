@@ -48,7 +48,9 @@ class CollectMigrationsTest(TransactionTestCase):
         blog_migrations = load_source(
             'blog_migrations', os.path.join(dir, 'blog_0001_project.py'))
         cookbook_migrations = load_source(
-            'cookbook_migrations', os.path.join(dir, 'cookbook_0001_project.py'))
+            'cookbook_migrations',
+            os.path.join(dir, 'cookbook_0001_project.py')
+        )
 
         return blog_migrations, cookbook_migrations
 
@@ -89,7 +91,7 @@ class CollectMigrationsTest(TransactionTestCase):
 
             # Check the migration dependencies
             self.assertEqual(blog_migrations.Migration.dependencies,
-                             [('cookbook', '0001_project')])
+                             [('cookbook', '__first__')])
             self.assertEqual(cookbook_migrations.Migration.dependencies, [])
 
             # Check the migration replaces count
@@ -275,9 +277,9 @@ class CollectMigrationsTest(TransactionTestCase):
         """ Test collecting migrations which causes a conflict """
 
         module = 'django_migrate_project.management.commands.collectmigrations'
-        detect_conflicts_path = module + '.MigrationLoader.detect_conflicts'
+        detect_conflicts_path = '.ProjectMigrationLoader.detect_conflicts'
 
-        with mock.patch(detect_conflicts_path) as detect_conflicts:
+        with mock.patch(module + detect_conflicts_path) as detect_conflicts:
             detect_conflicts.return_value = {
                 'blog': ('0001_initial', '0002_tag')
             }

@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('cookbook', '0002_cookware'),
+        ('cookbook', '__first__'),
     ]
 
     operations = [

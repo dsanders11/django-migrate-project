@@ -36,6 +36,7 @@ INSTALLED_APPS = (
     'blog',
     'cookbook',
     'event_calendar',
+    'newspaper',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

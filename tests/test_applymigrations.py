@@ -14,7 +14,7 @@ from django.db.models.signals import post_migrate, pre_migrate
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import override_settings, TransactionTestCase
+from django.test import modify_settings, override_settings, TransactionTestCase
 from django.utils import six
 
 import mock
@@ -103,6 +103,7 @@ class ApplyMigrationsTest(TransactionTestCase):
         loader = MigrationLoader(connection)
         self.assertEqual(loader.applied_migrations, applied_migrations)
 
+    @modify_settings(INSTALLED_APPS={'remove': 'newspaper'})  # For branch cov
     def test_nothing_to_apply(self):
         """ Test applying already applied project migration """
 
@@ -119,7 +120,7 @@ class ApplyMigrationsTest(TransactionTestCase):
                      input_dir=INITIAL_MIGRATION_DIR)
 
         # Check that it says nothing was applied
-        self.assertIn("no migrations", out.getvalue().lower())
+        self.assertIn("no migrations to apply", out.getvalue().lower())
 
         # Check that database stayed the same
         loader = MigrationLoader(connection)
@@ -199,11 +200,13 @@ class ApplyMigrationsTest(TransactionTestCase):
         post_migrate.connect(post_migrate_callback, sender=app_config)
 
         self.test_unapply()
-        self.test_nothing_to_apply()
         self.test_routine_migration()
 
-        self.assertEqual(pre_migrate_callback.call_count, 16)
-        self.assertEqual(post_migrate_callback.call_count, 16)
+        pre_migrate.disconnect(pre_migrate_callback, sender=app_config)
+        post_migrate.disconnect(post_migrate_callback, sender=app_config)
+
+        self.assertEqual(pre_migrate_callback.call_count, 9)
+        self.assertEqual(post_migrate_callback.call_count, 9)
 
     def test_changes_detected(self):
         """ Test a migration with model changes detected """
@@ -264,8 +267,8 @@ class ApplyMigrationsTest(TransactionTestCase):
             call_command('applymigrations', input_dir="", verbosity=0)
 
         try:
-            base_dir = tempfile.mkdtemp()
-            dir = os.path.join(base_dir, 'foo')
+            base = tempfile.mkdtemp()
+            dir = os.path.join(base, 'foo')
 
             # Non-existent dir
             with self.assertRaises(CommandError):
@@ -273,9 +276,9 @@ class ApplyMigrationsTest(TransactionTestCase):
 
             # Empty dir
             with self.assertRaises(CommandError):
-                call_command('applymigrations', input_dir=base_dir, verbosity=0)
+                call_command('applymigrations', input_dir=base, verbosity=0)
         finally:
-            shutil.rmtree(base_dir)
+            shutil.rmtree(base)
 
         with override_settings():
             del settings.BASE_DIR  # Simulate it not being set in settings
@@ -288,8 +291,10 @@ class ApplyMigrationsTest(TransactionTestCase):
         """ Test migrating a project using files from the default dir """
 
         try:
-            shutil.copytree(INITIAL_MIGRATION_DIR,
-                            os.path.join(settings.BASE_DIR, 'pending_migrations'))
+            shutil.copytree(
+                INITIAL_MIGRATION_DIR,
+                os.path.join(settings.BASE_DIR, 'pending_migrations')
+            )
 
             connection = connections[DEFAULT_DB_ALIAS]
             loader = MigrationLoader(connection)
