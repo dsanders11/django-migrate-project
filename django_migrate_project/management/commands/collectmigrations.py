@@ -17,7 +17,7 @@ from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.optimizer import MigrationOptimizer
 from django.db.migrations.writer import MigrationWriter
 
-from django_migrate_project.management.commands.migrateproject2 import ProjectMigrationLoader
+from django_migrate_project.management.commands.makeprojectmigrations import ProjectMigrationLoader
 
 
 class Command(BaseCommand):
