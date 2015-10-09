@@ -1,10 +1,8 @@
 from __future__ import unicode_literals
 
-from importlib import import_module
 from optparse import make_option
 
 import os
-import sys
 
 from django.apps import apps
 from django.conf import settings
@@ -16,88 +14,11 @@ from django.core.management.sql import (
 from django.db import connections, DEFAULT_DB_ALIAS
 from django.db.migrations.autodetector import MigrationAutodetector
 from django.db.migrations.executor import MigrationExecutor
-from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
 
-
-class ProjectMigrationLoader(MigrationLoader):
-    def __init__(self, *args, **kwargs):
-        super(ProjectMigrationLoader, self).__init__(*args, **kwargs)
-
-    def load_disk(self):
-        """ Loads the migrations for the project from disk. """
-
-        super(ProjectMigrationLoader, self).load_disk()
-        all_migrations = self.disk_migrations
-
-        migrations_dir = os.path.join(settings.BASE_DIR, "migrations")
-
-        if not os.path.exists(migrations_dir):
-            return
-
-        migrations = [f for f in os.listdir(migrations_dir) if os.path.isfile(os.path.join(migrations_dir, f))]
-
-        self.project_migrations = {}
-        self.disk_migrations = {}
-        self.unmigrated_apps = set()
-        self.migrated_apps = set()
-
-        # Populate the dependencies so the graph is complete
-        def populate_dependencies(migration):
-            for dep in migration.dependencies:
-                # if dep[0] in self.unmigrated_apps:
-                #     self.unmigrated_apps.remove(dep[0])
- 
-                self.migrated_apps.add(dep[0])
-
-                try:
-                    self.disk_migrations[dep] = all_migrations[dep]
-                except KeyError:
-                    if dep[1] == "__first__":
-                        for app_migration in all_migrations.keys():
-                            if app_migration[0] == dep[0]:
-                                internal_deps = [d for d in all_migrations[app_migration].dependencies if d[0] == dep[0]]
-                                if not internal_deps:
-                                    self.disk_migrations[app_migration] = all_migrations[app_migration]
-                                    populate_dependencies(all_migrations[app_migration])
-                    else:
-                        # Most likely is a dependency on a project migration
-                        pass
-
-                    continue
-
-                populate_dependencies(all_migrations[dep])
-
-        pending_migrations = []
-
-        for app_config in apps.get_app_configs():
-            app_label = app_config.label
-
-            app_migration_files = [m.rstrip(".py") for m in migrations if m.startswith(app_label) and m.endswith(".py")]
-
-            for migration_file in app_migration_files:
-                migration_name = migration_file.lstrip(app_label)[1:]
-
-                try:
-                    sys.path.insert(0, migrations_dir)
-                    module = import_module(migration_file)
-                except ImportError:
-                #     if app_label not in self.migrated_apps:
-                #         self.unmigrated_apps.add(app_label)
-                    continue
-                finally:
-                    sys.path.pop(0)
-
-                self.migrated_apps.add(app_label)
-
-                migration = module.Migration(migration_name, app_label)
-                all_migrations[app_label, migration_name] = migration
-                self.disk_migrations[app_label, migration_name] = migration
-                self.project_migrations[app_label, migration_name] = migration
-                pending_migrations.append(migration)
-
-        for migration in pending_migrations:
-            populate_dependencies(migration)
+from django_migrate_project.loader import (
+    ProjectMigrationLoader, PROJECT_MIGRATIONS_MODULE_NAME
+)
 
 
 # NOTE: Much of this code is borrowed and modified from the standard migrate
@@ -111,7 +32,8 @@ class Command(MigrateCommand):
                     default=True, help=("Tells Django to NOT prompt the user "
                                         "for input of any kind.")),
         make_option('--fake', action='store_true', dest='fake', default=False,
-            help='Mark migrations as run without actually running them'),
+                    help=("Mark migrations as run without actually running "
+                          "them")),
         make_option("--database", action='store', dest='database',
                     default=DEFAULT_DB_ALIAS,
                     help=("Nominates a database to synchronize. Defaults to "
@@ -123,7 +45,8 @@ class Command(MigrateCommand):
         self.verbosity = verbosity = options.get('verbosity')
         self.interactive = interactive = options.get('interactive')
 
-        migrations_dir = os.path.join(settings.BASE_DIR, "migrations")
+        migrations_dir = os.path.join(
+            settings.BASE_DIR, PROJECT_MIGRATIONS_MODULE_NAME)
 
         if not os.path.exists(migrations_dir):
             raise CommandError(
@@ -167,6 +90,13 @@ class Command(MigrateCommand):
 
                 if not migration_found:
                     targets.append((app_label, None))
+        else:
+            # Trim non-project migrations
+            project_migration_keys = executor.loader.project_migrations.keys()
+
+            for migration_key in list(targets):
+                if migration_key not in project_migration_keys:
+                    targets.remove(migration_key)
 
         plan = executor.migration_plan(targets)
 

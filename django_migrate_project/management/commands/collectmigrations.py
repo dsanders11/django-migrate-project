@@ -13,11 +13,12 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connections, DEFAULT_DB_ALIAS
 from django.db.migrations import Migration
-from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.optimizer import MigrationOptimizer
 from django.db.migrations.writer import MigrationWriter
 
-from django_migrate_project.management.commands.makeprojectmigrations import ProjectMigrationLoader
+from django_migrate_project.loader import (
+    ProjectMigrationLoader, DEFAULT_PENDING_MIGRATIONS_DIRECTORY
+)
 
 
 class Command(BaseCommand):
@@ -46,7 +47,8 @@ class Command(BaseCommand):
         migrations_dir = options.get('output_dir')
 
         try:
-            default_output_dir = os.path.join(settings.BASE_DIR, 'pending_migrations')
+            default_output_dir = os.path.join(
+                settings.BASE_DIR, DEFAULT_PENDING_MIGRATIONS_DIRECTORY)
         except AttributeError:
             default_output_dir = None
 
@@ -133,7 +135,8 @@ class Command(BaseCommand):
         def walk_nodes(current_app, migration_key):
             if migration_key not in loader.applied_migrations:
                 app_label, migration_name = migration_key
-                migration = loader.disk_migrations[migration_key]
+                migration_key = loader.check_key(migration_key, current_app) or migration_key
+                migration = loader.get_migration(*migration_key)
 
                 if app_label == current_app and migration not in new_app_migrations[app_label][0]:
                     new_app_migrations[app_label][0].append(migration)
@@ -172,12 +175,12 @@ class Command(BaseCommand):
             if dependent_apps_1.intersection(dependent_apps_2):
                 return _find_common_ancestors([node1, node2])
             else:
-                return []            
+                return []
 
         for migration_key in leaf_nodes:
             app_label, migration_name = migration_key
 
-            if migration_key not in loader.applied_migrations:      
+            if migration_key not in loader.applied_migrations:
                 migrating_apps.append(app_label)
 
         app_pairs = combinations(migrating_apps, 2)
@@ -242,7 +245,9 @@ class Command(BaseCommand):
                         # If there is a project level migration for the dependency app
                         if dependency[0] in project_migrations:
                             other_migration = None
-                            dependency_migration = loader.get_migration(dependency[0], dependency[1])
+                            migration_key = (dependency[0], dependency[1])
+                            migration_key = loader.check_key(migration_key, app_label) or migration_key
+                            dependency_migration = loader.get_migration(*migration_key)
 
                             for idx, migration_set in enumerate(app_migrations[dependency[0]]):
                                 if dependency_migration in migration_set:
