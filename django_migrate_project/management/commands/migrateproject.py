@@ -30,13 +30,17 @@ class ProjectMigrationLoader(MigrationLoader):
         super(ProjectMigrationLoader, self).load_disk()
         all_migrations = self.disk_migrations
 
+        migrations_dir = os.path.join(settings.BASE_DIR, "migrations")
+
+        if not os.path.exists(migrations_dir):
+            return
+
+        migrations = [f for f in os.listdir(migrations_dir) if os.path.isfile(os.path.join(migrations_dir, f))]
+
         self.project_migrations = {}
         self.disk_migrations = {}
         self.unmigrated_apps = set()
         self.migrated_apps = set()
-
-        migrations_dir = "migrations"
-        migrations = [f for f in os.listdir(migrations_dir) if os.path.isfile(os.path.join(migrations_dir, f))]
 
         # Populate the dependencies so the graph is complete
         def populate_dependencies(migration):
@@ -103,9 +107,6 @@ class Command(MigrateCommand):
     option_list = BaseCommand.option_list + (
         make_option("--unapply", action='store_true',  dest='unapply',
                     default=False, help="Unapply the migrations instead."),
-        make_option("--input-dir", action='store', dest='input_dir',
-                    default=None, help=("Directory to load the project "
-                                        "migrations from.")),
         make_option("--noinput", action='store_false', dest='interactive',
                     default=True, help=("Tells Django to NOT prompt the user "
                                         "for input of any kind.")),
@@ -121,28 +122,17 @@ class Command(MigrateCommand):
     def handle(self, *args, **options):
         self.verbosity = verbosity = options.get('verbosity')
         self.interactive = interactive = options.get('interactive')
-        migrations_dir = options.get('input_dir')
 
-        try:
-            default_input_dir = os.path.join(settings.BASE_DIR, 'migrations')
-        except AttributeError:
-            default_input_dir = None
+        migrations_dir = os.path.join(settings.BASE_DIR, "migrations")
 
-        if migrations_dir is None:
-            if not default_input_dir:
-                raise CommandError(
-                    "No input directory to read migrations from. Either set "
-                    "BASE_DIR in your settings or provide a directory path "
-                    "via the --input-dir option.")
-            else:
-                migrations_dir = default_input_dir
-        elif not migrations_dir:
+        if not os.path.exists(migrations_dir):
             raise CommandError(
-                "Provide a real directory path via the --input-dir option.")
-
-        if not (os.path.exists(migrations_dir) and os.listdir(migrations_dir)):
-            raise CommandError("Input directory (%s) doesn't exist or is "
-                               "empty." % migrations_dir)
+                "No migrations found, project migrations folder '(%s)' "
+                "doesn't exist." % migrations_dir)
+        elif not os.path.exists(os.path.join(migrations_dir, "__init__.py")):
+            raise CommandError(
+                "Project migrations folder '(%s)' missing '__init__.py' "
+                "file." % migrations_dir)
 
         # Get the database we're operating from
         db = options.get('database')

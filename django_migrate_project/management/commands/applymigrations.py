@@ -31,8 +31,13 @@ class PendingMigrationLoader(ProjectMigrationLoader):
     def load_disk(self):
         """ Loads the migrations for the project from disk. """
 
+        # Load project-level migrations for dependencies
         super(PendingMigrationLoader, self).load_disk()
-        all_migrations = self.disk_migrations
+        all_migrations = dict(self.disk_migrations)
+
+        # Load app migrations for dependencies
+        super(ProjectMigrationLoader, self).load_disk()
+        all_migrations.update(self.disk_migrations)
 
         self.project_migrations = {}
         self.disk_migrations = {}
@@ -238,6 +243,10 @@ class Command(MigrateCommand):
                     ))
         else:
             executor.migrate(targets, plan, fake=options.get("fake", False))
+
+        # A little database clean-up
+        for app_label, migration_name in executor.loader.project_migrations.keys():
+            executor.recorder.record_unapplied(app_label, migration_name)
 
         # Send the post_migrate signal, so individual apps can do whatever they
         # need to do at this point.

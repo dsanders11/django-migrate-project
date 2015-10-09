@@ -33,7 +33,7 @@ class ProjectMigrationLoader(MigrationLoader):
         self.unmigrated_apps = set(self.unmigrated_apps)
         self.migrated_apps = set(self.migrated_apps)
 
-        migrations_dir = "migrations"
+        migrations_dir = os.path.join(settings.BASE_DIR, "migrations")
         migrations = [f for f in os.listdir(migrations_dir) if os.path.isfile(os.path.join(migrations_dir, f))]
 
         for app_config in apps.get_app_configs():
@@ -88,13 +88,25 @@ class Command(MakeMigrationsCommand):
     option_list = BaseCommand.option_list + (
         make_option('--dry-run', action='store_true', dest='dry_run', default=False,
             help="Just show what migrations would be made; don't actually write them."),
-        make_option('--empty', action='store_true', dest='empty', default=False,
-            help="Create an empty migration."),
         make_option('--noinput', action='store_false', dest='interactive', default=True,
             help='Tells Django to NOT prompt the user for input of any kind.'),
     )
 
     args = ""
+
+    def handle(self, *app_labels, **options):
+        migrations_dir = os.path.join(settings.BASE_DIR, "migrations")
+
+        if not os.path.exists(migrations_dir):
+            raise CommandError(
+                "No migrations found, project migrations folder '(%s)' "
+                "doesn't exist." % migrations_dir)
+       	elif not os.path.exists(os.path.join(migrations_dir, "__init__.py")):
+            raise CommandError(
+                "Project migrations folder '(%s)' missing '__init__.py' "
+                "file." % migrations_dir)
+
+        super(Command, self).handle(*app_labels, **options)
 
     def write_migration_files(self, changes):
         """
