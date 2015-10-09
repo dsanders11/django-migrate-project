@@ -16,7 +16,6 @@ MIGRATIONS_DIR = os.path.join(
     settings.BASE_DIR, PROJECT_MIGRATIONS_MODULE_NAME)
 
 EXPECTED_MIGRATIONS = sorted([
-    '__init__.py',
     'event_calendar_0001_initial.py',
     'newspaper_0001_initial.py'
 ])
@@ -35,7 +34,11 @@ class MakeProjectMigrationsTest(TransactionTestCase):
         try:
             for filename in os.listdir(MIGRATIONS_DIR):
                 if filename != '__init__.py':
-                    os.remove(os.path.join(MIGRATIONS_DIR, filename))
+                    filepath = os.path.join(MIGRATIONS_DIR, filename)
+                    if os.path.isfile(filepath):
+                        os.remove(filepath)
+                    else:
+                        shutil.rmtree(filepath)
         except IOError:
             pass
 
@@ -44,6 +47,19 @@ class MakeProjectMigrationsTest(TransactionTestCase):
         except CommandError:
             pass
 
+    def get_migration_filenames(self, dir):
+        """ Helper to get the filenames for migrations in a directory """
+
+        filenames = []
+
+        for filename in sorted(os.listdir(dir)):
+            if not filename.endswith('.py'):
+                continue
+            elif filename != '__init__.py':
+                filenames.append(filename)
+
+        return filenames
+
     def test_success(self):
         """ Test succesfully creating project-level migrations """
 
@@ -51,7 +67,7 @@ class MakeProjectMigrationsTest(TransactionTestCase):
         call_command('migrate', 'cookbook', verbosity=0)
 
         call_command('makeprojectmigrations', verbosity=0)
-        self.assertEqual(sorted(os.listdir(MIGRATIONS_DIR)),
+        self.assertEqual(self.get_migration_filenames(MIGRATIONS_DIR),
                          EXPECTED_MIGRATIONS)
 
     def test_unapplied_migrations(self):
@@ -59,7 +75,7 @@ class MakeProjectMigrationsTest(TransactionTestCase):
 
         # Should behave the same as if the migrations are applied
         call_command('makeprojectmigrations', verbosity=0)
-        self.assertEqual(sorted(os.listdir(MIGRATIONS_DIR)),
+        self.assertEqual(self.get_migration_filenames(MIGRATIONS_DIR),
                          EXPECTED_MIGRATIONS)
 
     def test_bad_migrations_folder(self):
@@ -97,7 +113,7 @@ class MakeProjectMigrationsTest(TransactionTestCase):
         self.assertEqual(out.getvalue().count("class "), 2)
 
         # No migrations on disk
-        self.assertEqual(os.listdir(MIGRATIONS_DIR), ['__init__.py'])
+        self.assertEqual(self.get_migration_filenames(MIGRATIONS_DIR), [])
 
         out = six.StringIO()
 
@@ -113,7 +129,7 @@ class MakeProjectMigrationsTest(TransactionTestCase):
         self.assertEqual(out.getvalue().count("class "), 0)
 
         # No migrations on disk
-        self.assertEqual(os.listdir(MIGRATIONS_DIR), ['__init__.py'])
+        self.assertEqual(self.get_migration_filenames(MIGRATIONS_DIR), [])
 
     def test_no_migrations(self):
         """ Test running the command when no migrations are needed """
@@ -128,7 +144,7 @@ class MakeProjectMigrationsTest(TransactionTestCase):
 
         self.assertIn("no changes", out.getvalue().lower())
 
-        migrations_files = sorted(os.listdir(MIGRATIONS_DIR))
+        migrations_files = self.get_migration_filenames(MIGRATIONS_DIR)
 
         self.assertEqual([x for x in migrations_files if x.endswith('.py')],
                          EXPECTED_MIGRATIONS)
@@ -146,8 +162,8 @@ class MakeProjectMigrationsTest(TransactionTestCase):
             self.assertIn("migrations for", out.getvalue().lower())
             self.assertIn("newspaper", out.getvalue().lower())
 
-            self.assertEqual(sorted(os.listdir(MIGRATIONS_DIR)),
-                             ['__init__.py', 'newspaper_0001_initial.py'])
+            self.assertEqual(self.get_migration_filenames(MIGRATIONS_DIR),
+                             ['newspaper_0001_initial.py'])
 
         self.tearDown()
         self.setUp()
@@ -164,8 +180,8 @@ class MakeProjectMigrationsTest(TransactionTestCase):
             self.assertIn("migrations for", out.getvalue().lower())
             self.assertIn("newspaper", out.getvalue().lower())
 
-            self.assertEqual(sorted(os.listdir(MIGRATIONS_DIR)),
-                             ['__init__.py', 'newspaper_0001_initial.py'])
+            self.assertEqual(self.get_migration_filenames(MIGRATIONS_DIR),
+                             ['newspaper_0001_initial.py'])
 
     def test_monkey_patch(self):
         """ Test the behavior of the command when monkey patching apps """
@@ -181,14 +197,13 @@ class MakeProjectMigrationsTest(TransactionTestCase):
         try:
             call_command('makeprojectmigrations', verbosity=0)
 
-            migrations_files = sorted(os.listdir(MIGRATIONS_DIR))
+            migrations_files = self.get_migration_filenames(MIGRATIONS_DIR)
 
-            self.assertEqual(len(migrations_files), 4)
-            self.assertEqual('__init__.py', migrations_files[0])
+            self.assertEqual(len(migrations_files), 3)
             self.assertEqual('event_calendar_0001_initial.py',
-                             migrations_files[2])
+                             migrations_files[1])
             self.assertEqual('newspaper_0001_initial.py',
-                             migrations_files[3])
-            self.assertTrue(migrations_files[1].startswith('auth_'))
+                             migrations_files[2])
+            self.assertTrue(migrations_files[0].startswith('auth_'))
         finally:
             field.blank = True
