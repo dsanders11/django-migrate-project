@@ -68,12 +68,12 @@ class MigrateProjectTest(TransactionTestCase):
 
         connection = connections[DEFAULT_DB_ALIAS]
         loader = MigrationLoader(connection)
-        applied_migrations = loader.applied_migrations
+        migrated_apps = [app for app, _ in loader.applied_migrations]
 
-        self.assertNotIn('blog', [app for app, _ in applied_migrations])
-        self.assertNotIn('cookbook', [app for app, _ in applied_migrations])
-        self.assertNotIn('event_calendar', [app for app, _ in applied_migrations])
-        self.assertNotIn('newspaper', [app for app, _ in applied_migrations])
+        self.assertNotIn('blog', migrated_apps)
+        self.assertNotIn('cookbook', migrated_apps)
+        self.assertNotIn('event_calendar', migrated_apps)
+        self.assertNotIn('newspaper', migrated_apps)
 
         # Collect migrations and migrate the test project
         call_command('collectmigrations', verbosity=0)
@@ -81,27 +81,27 @@ class MigrateProjectTest(TransactionTestCase):
 
         # Check that database changed
         loader = MigrationLoader(connection)
-        applied_migrations = loader.applied_migrations
+        migrated_apps = [app for app, _ in loader.applied_migrations]
 
         # These apps already had migrations so they were collected and run
-        self.assertIn('blog', [app for app, _ in applied_migrations])
-        self.assertIn('cookbook', [app for app, _ in applied_migrations])
+        self.assertIn('blog', migrated_apps)
+        self.assertIn('cookbook', migrated_apps)
 
         # These apps didn't have migrations so they were not collected and run
-        self.assertNotIn('event_calendar', [app for app, _ in applied_migrations])
-        self.assertNotIn('newspaper', [app for app, _ in applied_migrations])
+        self.assertNotIn('event_calendar', migrated_apps)
+        self.assertNotIn('newspaper', migrated_apps)
 
     def test_project_end_to_end(self):
         """ Test the project-level migrations functionality end-to-end """
 
         connection = connections[DEFAULT_DB_ALIAS]
         loader = MigrationLoader(connection)
-        applied_migrations = loader.applied_migrations
+        migrated_apps = [app for app, _ in loader.applied_migrations]
 
-        self.assertNotIn('blog', [app for app, _ in applied_migrations])
-        self.assertNotIn('cookbook', [app for app, _ in applied_migrations])
-        self.assertNotIn('event_calendar', [app for app, _ in applied_migrations])
-        self.assertNotIn('newspaper', [app for app, _ in applied_migrations])
+        self.assertNotIn('blog', migrated_apps)
+        self.assertNotIn('cookbook', migrated_apps)
+        self.assertNotIn('event_calendar', migrated_apps)
+        self.assertNotIn('newspaper', migrated_apps)
 
         # Make project migrations and migrate the test project
         call_command('makeprojectmigrations', verbosity=0)
@@ -109,12 +109,12 @@ class MigrateProjectTest(TransactionTestCase):
 
         # Check that database changed
         loader = MigrationLoader(connection)
-        applied_migrations = loader.applied_migrations
+        migrated_apps = [app for app, _ in loader.applied_migrations]
 
         # These apps already had migrations so make migration wouldn't do work
-        self.assertNotIn('blog', [app for app, _ in applied_migrations])
-        self.assertNotIn('cookbook', [app for app, _ in applied_migrations])
+        self.assertNotIn('blog', migrated_apps)
+        self.assertNotIn('cookbook', migrated_apps)
 
         # These apps didn't have migrations so they were created for project
-        self.assertIn('event_calendar', [app for app, _ in applied_migrations])
-        self.assertIn('newspaper', [app for app, _ in applied_migrations])
+        self.assertIn('event_calendar', migrated_apps)
+        self.assertIn('newspaper', migrated_apps)
