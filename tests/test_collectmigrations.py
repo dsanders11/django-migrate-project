@@ -104,12 +104,12 @@ class CollectMigrationsTest(TransactionTestCase):
 
             # Check the migration dependencies
             self.assertEqual(
-                blog_migrations[0].Migration.dependencies,
-                [('cookbook', '__first__'), ('auth', '__first__')]
+                sorted(blog_migrations[0].Migration.dependencies),
+                [('auth', '__first__'), ('cookbook', '__first__')]
             )
             self.assertEqual(cookbook_migrations[0].Migration.dependencies, [])
             self.assertEqual(
-                cookbook_migrations[1].Migration.dependencies,
+                sorted(cookbook_migrations[1].Migration.dependencies),
                 [('blog', '0001_project'), ('cookbook', '0001_project')]
             )
 
@@ -135,11 +135,13 @@ class CollectMigrationsTest(TransactionTestCase):
         blog_migrations, cookbook_migrations = self.load_migrations()
 
         # Check the migration dependencies
-        self.assertEqual(blog_migrations[0].Migration.dependencies,
-                         [('auth', '__first__'), ('blog', '0001_initial')])
         self.assertEqual(
-            cookbook_migrations[0].Migration.dependencies,
-            [('cookbook', '0003_auto_20150514_1515'), ('blog', '0001_project')]
+            sorted(blog_migrations[0].Migration.dependencies),
+            [('auth', '__first__'), ('blog', '0001_initial')]
+        )
+        self.assertEqual(
+            sorted(cookbook_migrations[0].Migration.dependencies),
+            [('blog', '0001_project'), ('cookbook', '0003_auto_20150514_1515')]
         )
 
         # Check the migration replaces count
