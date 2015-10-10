@@ -10,7 +10,7 @@
    :alt: Build Status
    :target: https://travis-ci.org/dsanders11/django-migrate-project
 
-.. image:: https://pypip.in/v/django-migrate-project/badge.svg
+.. image:: https://img.shields.io/pypi/v/django-migrate-project.svg
    :alt: Latest PyPI version
    :target: https://pypi.python.org/pypi/django-migrate-project/
 
