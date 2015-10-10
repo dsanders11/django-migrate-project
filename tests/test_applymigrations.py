@@ -46,6 +46,7 @@ class ApplyMigrationsTest(TransactionTestCase):
         # Destroy modules that were loaded for migrations
         sys.modules.pop("blog_0001_project", None)
         sys.modules.pop("cookbook_0001_project", None)
+        sys.modules.pop("cookbook_0002_project", None)
 
     def test_unapply(self):
         """ Test unapplying an applied collected migration """
