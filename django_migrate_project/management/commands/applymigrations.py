@@ -29,7 +29,7 @@ class Command(MigrateCommand):
         make_option("--unapply", action='store_true',  dest='unapply',
                     default=False, help="Unapply the migrations instead."),
         make_option("--input-dir", action='store', dest='input_dir',
-                    default=None, help=("Directory to load the project "
+                    default=None, help=("Directory to load the collected "
                                         "migrations from.")),
         make_option("--noinput", action='store_false', dest='interactive',
                     default=True, help=("Tells Django to NOT prompt the user "

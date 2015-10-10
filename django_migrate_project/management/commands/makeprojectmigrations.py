@@ -11,7 +11,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db.migrations.writer import MigrationWriter
 
 from django_migrate_project.loader import (
-    NewProjectMigrationLoader, PROJECT_MIGRATIONS_MODULE_NAME
+    ProjectMigrationLoader, PROJECT_MIGRATIONS_MODULE_NAME
 )
 from django_migrate_project.questioner import (
     ProjectInteractiveMigrationQuestioner)
@@ -22,7 +22,7 @@ import django
 
 makemigrations = django.core.management.commands.makemigrations
 
-makemigrations.MigrationLoader = NewProjectMigrationLoader
+makemigrations.MigrationLoader = ProjectMigrationLoader
 makemigrations.InteractiveMigrationQuestioner = \
     ProjectInteractiveMigrationQuestioner
 

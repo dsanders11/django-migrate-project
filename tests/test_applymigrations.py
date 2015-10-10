@@ -48,7 +48,7 @@ class ApplyMigrationsTest(TransactionTestCase):
         sys.modules.pop("cookbook_0001_project", None)
 
     def test_unapply(self):
-        """ Test unapplying an applied project migration """
+        """ Test unapplying an applied collected migration """
 
         connection = connections[DEFAULT_DB_ALIAS]
         loader = MigrationLoader(connection)
@@ -107,7 +107,7 @@ class ApplyMigrationsTest(TransactionTestCase):
 
     @modify_settings(INSTALLED_APPS={'remove': 'newspaper'})  # For branch cov
     def test_nothing_to_apply(self):
-        """ Test applying already applied project migration """
+        """ Test applying already applied collected migration """
 
         # Applied via applymigrations and then again
         call_command('applymigrations', input_dir=INITIAL_MIGRATION_DIR,
@@ -166,7 +166,7 @@ class ApplyMigrationsTest(TransactionTestCase):
     def test_dependency_edge_case(self):
         """ Test an edge case where migration dependency is fully migrated """
 
-        # Fully migrate the app the project migration depends on
+        # Fully migrate the app the collected migration depends on
         call_command('migrate', 'blog', verbosity=0)
 
         module = 'django_migrate_project.management.commands.applymigrations'
@@ -231,7 +231,7 @@ class ApplyMigrationsTest(TransactionTestCase):
             self.assertIn("makemigrations", out.getvalue().lower())
 
     def test_routine_migration(self):
-        """ Test a non-initial project migration """
+        """ Test a non-initial collected migration """
 
         # Partial migration to set state
         call_command('migrate', 'blog', '0001', verbosity=0)
@@ -249,7 +249,7 @@ class ApplyMigrationsTest(TransactionTestCase):
         self.assertNotEqual(loader.applied_migrations, applied_migrations)
 
     def test_unoptimized_migration(self):
-        """ Test an unoptimized project migration """
+        """ Test an unoptimized collected migration """
 
         connection = connections[DEFAULT_DB_ALIAS]
         loader = MigrationLoader(connection)
@@ -290,7 +290,7 @@ class ApplyMigrationsTest(TransactionTestCase):
 
     @override_settings(BASE_DIR=tempfile.mkdtemp())
     def test_default_dir(self):
-        """ Test migrating a project using files from the default dir """
+        """ Test collected migrations using files from the default dir """
 
         try:
             shutil.copytree(
@@ -313,7 +313,7 @@ class ApplyMigrationsTest(TransactionTestCase):
             shutil.rmtree(settings.BASE_DIR)
 
     def test_alt_database(self):
-        """ Test migrating a project with an alternate database selected """
+        """ Test collected migrations with an alternate database selected """
 
         # Roll back migrations to a blank state in the 'other' database
         call_command('migrate', 'blog', 'zero', database='other', verbosity=0)

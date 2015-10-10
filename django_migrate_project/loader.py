@@ -101,6 +101,15 @@ class ProjectMigrationLoader(ProjectMigrationLoaderMixin, MigrationLoader):
         # Now load project migrations
         self.project_migrations = self.load_project_disk()
 
+        try:
+            project_migrations = settings.PROJECT_MIGRATIONS
+        except AttributeError:
+            project_migrations = []
+
+        for app_label in project_migrations:
+            self.migrated_apps.add(app_label)
+            self.unmigrated_apps.discard(app_label)
+
 
 class PendingMigrationLoader(ProjectMigrationLoaderMixin, MigrationLoader):
     def __init__(self, *args, **kwargs):
@@ -127,19 +136,3 @@ class PendingMigrationLoader(ProjectMigrationLoaderMixin, MigrationLoader):
             for migration in migrations:
                 self.disk_migrations[app_label, migration.name] = migration
                 self.pending_migrations[app_label, migration.name] = migration
-
-
-class NewProjectMigrationLoader(ProjectMigrationLoader):
-    def load_disk(self):
-        """ Loads the migrations for the project from disk. """
-
-        super(NewProjectMigrationLoader, self).load_disk()
-
-        try:
-            project_migrations = settings.PROJECT_MIGRATIONS
-        except AttributeError:
-            project_migrations = []
-
-        for app_label in project_migrations:
-            self.migrated_apps.add(app_label)
-            self.unmigrated_apps.discard(app_label)

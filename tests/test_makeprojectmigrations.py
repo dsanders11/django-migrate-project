@@ -28,6 +28,8 @@ class MakeProjectMigrationsTest(TransactionTestCase):
         # Roll back migrations to a blank state
         call_command('migrate', 'blog', 'zero', verbosity=0)
         call_command('migrate', 'cookbook', 'zero', verbosity=0)
+        call_command('migrate', 'event_calendar', 'zero', verbosity=0)
+        call_command('migrate', 'newspaper', 'zero', verbosity=0)
 
     def tearDown(self):
         # Delete any created migrations
@@ -42,10 +44,8 @@ class MakeProjectMigrationsTest(TransactionTestCase):
         except IOError:
             pass
 
-        try:
-            call_command('migrate', 'calendar', 'zero', verbosity=0)
-        except CommandError:
-            pass
+        call_command('migrate', 'event_calendar', 'zero', verbosity=0)
+        call_command('migrate', 'newspaper', 'zero', verbosity=0)
 
     def get_migration_filenames(self, dir):
         """ Helper to get the filenames for migrations in a directory """
