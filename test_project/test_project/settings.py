@@ -35,6 +35,8 @@ INSTALLED_APPS = (
     'django_migrate_project',
     'blog',
     'cookbook',
+    'event_calendar',
+    'newspaper',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -57,6 +59,9 @@ ROOT_URLCONF = 'test_project.urls'
 
 WSGI_APPLICATION = 'test_project.wsgi.application'
 
+PROJECT_MIGRATIONS = [
+    'event_calendar',
+]
 
 # Database
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
