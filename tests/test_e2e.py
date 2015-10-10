@@ -43,8 +43,8 @@ class MigrateProjectTest(TransactionTestCase):
         # Roll back migrations to a blank state
         call_command('migrate', 'blog', 'zero', verbosity=0)
         call_command('migrate', 'cookbook', 'zero', verbosity=0)
-        call_command('migrate', 'newspaper', 'zero', verbosity=0)
         call_command('migrate', 'event_calendar', 'zero', verbosity=0)
+        call_command('migrate', 'newspaper', 'zero', verbosity=0)
 
     def tearDown(self):
         # Delete any created migrations

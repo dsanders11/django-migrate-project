@@ -8,12 +8,12 @@ import sys
 import tempfile
 
 from django.apps import apps
-from django.db import connections, DEFAULT_DB_ALIAS
-from django.db.migrations.loader import MigrationLoader
-from django.db.models.signals import post_migrate, pre_migrate
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import connections, DEFAULT_DB_ALIAS
+from django.db.migrations.loader import MigrationLoader
+from django.db.models.signals import post_migrate, pre_migrate
 from django.test import modify_settings, override_settings, TransactionTestCase
 from django.utils import six
 
@@ -40,6 +40,10 @@ class ApplyMigrationsTest(TransactionTestCase):
         call_command('migrate', 'cookbook', 'zero', verbosity=0)
 
     def tearDown(self):
+        # Delete any temp directories
+        if getattr(self, 'tempdir', None):
+            shutil.rmtree(self.tempdir)
+
         self.clear_migrations_modules()
 
     def clear_migrations_modules(self):
@@ -67,7 +71,7 @@ class ApplyMigrationsTest(TransactionTestCase):
         call_command('applymigrations', unapply=True, stdout=out, verbosity=1,
                      input_dir=INITIAL_MIGRATION_DIR)
 
-        # Check that it sas it was unapplied
+        # Check that it says it was unapplied
         self.assertIn("unapply all", out.getvalue().lower())
 
         # Check that database is back to original
@@ -229,7 +233,7 @@ class ApplyMigrationsTest(TransactionTestCase):
                          input_dir=INITIAL_MIGRATION_DIR)
 
             self.assertIn("have changes", out.getvalue().lower())
-            self.assertIn("makemigrations", out.getvalue().lower())
+            self.assertIn("makeprojectmigrations", out.getvalue().lower())
 
     def test_routine_migration(self):
         """ Test a non-initial collected migration """
@@ -289,11 +293,12 @@ class ApplyMigrationsTest(TransactionTestCase):
             with self.assertRaises(CommandError):
                 call_command('applymigrations', verbosity=0)
 
-    @override_settings(BASE_DIR=tempfile.mkdtemp())
     def test_default_dir(self):
         """ Test collected migrations using files from the default dir """
 
-        try:
+        self.tempdir = tempfile.mkdtemp()
+
+        with override_settings(BASE_DIR=self.tempdir):
             shutil.copytree(
                 INITIAL_MIGRATION_DIR,
                 os.path.join(
@@ -310,8 +315,6 @@ class ApplyMigrationsTest(TransactionTestCase):
 
             # Check that database was migrated
             self.assertNotEqual(loader.applied_migrations, applied_migrations)
-        finally:
-            shutil.rmtree(settings.BASE_DIR)
 
     def test_alt_database(self):
         """ Test collected migrations with an alternate database selected """

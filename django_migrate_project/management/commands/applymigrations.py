@@ -163,9 +163,9 @@ class Command(MigrateCommand):
                         " in a migration, and so won't be applied."
                     ))
                     self.stdout.write(self.style.NOTICE(
-                        "  Run 'manage.py makemigrations' to make new "
-                        "migrations, and then re-run 'manage.py migrate' to "
-                        "apply them."
+                        "  Run 'manage.py makeprojectmigrations' to make new "
+                        "migrations, and then run 'manage.py migrateproject' "
+                        "to apply them."
                     ))
         else:
             executor.migrate(targets, plan, fake=options.get("fake", False))

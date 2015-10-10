@@ -41,6 +41,10 @@ class CollectMigrationsTest(TransactionTestCase):
         call_command('migrate', 'cookbook', 'zero', verbosity=0)
 
     def tearDown(self):
+        # Delete any temp directories
+        if getattr(self, 'tempdir', None):
+            shutil.rmtree(self.tempdir)
+
         # Delete the default migrations path if it exists
         if path_exists(DEFAULT_DIR):
             shutil.rmtree(DEFAULT_DIR)
@@ -68,7 +72,8 @@ class CollectMigrationsTest(TransactionTestCase):
     def test_initial_collect(self):
         """ Test collecting migrations when test apps have none applied """
 
-        custom_dir = os.path.join(tempfile.mkdtemp(), 'migrations')
+        self.tempdir = tempfile.mkdtemp()
+        custom_dir = os.path.join(self.tempdir, 'migrations')
 
         # Test outputting to both the default directory and a custom directory
         for output_dir in (DEFAULT_DIR, custom_dir):
@@ -166,7 +171,8 @@ class CollectMigrationsTest(TransactionTestCase):
     def test_path_exists(self):
         """ Test collecting migrations when a previous collection exists """
 
-        custom_dir = os.path.join(tempfile.mkdtemp(), 'migrations')
+        self.tempdir = tempfile.mkdtemp()
+        custom_dir = os.path.join(self.tempdir, 'migrations')
 
         # Test outputting to both the default directory and a custom directory
         for output_dir in (DEFAULT_DIR, custom_dir):

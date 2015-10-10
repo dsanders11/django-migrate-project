@@ -305,7 +305,7 @@ class PendingMigrationLoader(ProjectMigrationLoaderMixin, MigrationLoader):
 
 
 @python_2_unicode_compatible
-class NodeNotFoundError(LookupError):
+class NodeNotFoundError(LookupError):  # pragma: no cover
     """
     Raised when an attempt on a node is made that is not available in the
     graph.
