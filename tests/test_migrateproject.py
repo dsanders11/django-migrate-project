@@ -26,14 +26,6 @@ TEST_MIGRATIONS_DIR = os.path.join(settings.BASE_DIR, 'test_migrations')
 PROJECT_MIGRATIONS_DIRECTORY = os.path.join(
     TEST_MIGRATIONS_DIR, 'project_migration')
 
-EXPECTED_MIGRATIONS = sorted([
-    '__init__.py',
-    'event_calendar_0001_initial.py',
-    'newspaper_0001_initial.py'
-])
-
-from unittest import skip
-
 
 class MigrateProjectTest(TransactionTestCase):
     """ Tests for 'migrateproject' """
@@ -332,4 +324,3 @@ class MigrateProjectTest(TransactionTestCase):
             # The 'other' database should have been migrated
             self.assertNotEqual(loader.applied_migrations,
                                 applied_migrations)
-

@@ -85,10 +85,19 @@ class Command(MigrateCommand):
 
                 for dependency in migration.dependencies:
                     if dependency[0] == app_label:  # pragma: no branch
-                        targets.append(dependency)
+                        result = executor.loader.check_key(dependency,
+                                                           app_label)
+                        dependency = result or dependency
+
+                        if (dependency[0], None) not in targets:  # pragma: nb
+                            targets.append(dependency)
                         migration_found = True
 
                 if not migration_found:
+                    for target in list(targets):
+                        if target[0] == app_label and target[1] is not None:
+                            targets.remove(target)
+
                     targets.append((app_label, None))
         else:
             # Trim non-project migrations
