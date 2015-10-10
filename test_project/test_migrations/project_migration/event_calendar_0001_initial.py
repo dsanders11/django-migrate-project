@@ -7,16 +7,15 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('cookbook', '__first__'),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Post',
+            name='Event',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('title', models.CharField(max_length=32)),
-                ('recipe', models.ForeignKey(to='cookbook.Recipe')),
+                ('time', models.DateTimeField()),
+                ('description', models.CharField(max_length=128)),
             ],
             options={
             },

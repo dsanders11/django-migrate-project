@@ -17,7 +17,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.state import ProjectState
 
 from django_migrate_project.loader import (
-    ProjectMigrationLoader, PROJECT_MIGRATIONS_MODULE_NAME
+    PendingMigrationLoader, DEFAULT_PENDING_MIGRATIONS_DIRECTORY
 )
 
 
@@ -28,6 +28,9 @@ class Command(MigrateCommand):
     option_list = BaseCommand.option_list + (
         make_option("--unapply", action='store_true',  dest='unapply',
                     default=False, help="Unapply the migrations instead."),
+        make_option("--input-dir", action='store', dest='input_dir',
+                    default=None, help=("Directory to load the collected "
+                                        "migrations from.")),
         make_option("--noinput", action='store_false', dest='interactive',
                     default=True, help=("Tells Django to NOT prompt the user "
                                         "for input of any kind.")),
@@ -44,18 +47,29 @@ class Command(MigrateCommand):
     def handle(self, *args, **options):
         self.verbosity = verbosity = options.get('verbosity')
         self.interactive = interactive = options.get('interactive')
+        migrations_dir = options.get('input_dir')
 
-        migrations_dir = os.path.join(
-            settings.BASE_DIR, PROJECT_MIGRATIONS_MODULE_NAME)
+        try:
+            default_input_dir = os.path.join(
+                settings.BASE_DIR, DEFAULT_PENDING_MIGRATIONS_DIRECTORY)
+        except AttributeError:
+            default_input_dir = None
 
-        if not os.path.exists(migrations_dir):
+        if migrations_dir is None:
+            if not default_input_dir:
+                raise CommandError(
+                    "No input directory to read migrations from. Either set "
+                    "BASE_DIR in your settings or provide a directory path "
+                    "via the --input-dir option.")
+            else:
+                migrations_dir = default_input_dir
+        elif not migrations_dir:
             raise CommandError(
-                "No migrations found, project migrations folder '(%s)' "
-                "doesn't exist." % migrations_dir)
-        elif not os.path.exists(os.path.join(migrations_dir, "__init__.py")):
-            raise CommandError(
-                "Project migrations folder '(%s)' missing '__init__.py' "
-                "file." % migrations_dir)
+                "Provide a real directory path via the --input-dir option.")
+
+        if not (os.path.exists(migrations_dir) and os.listdir(migrations_dir)):
+            raise CommandError("Input directory (%s) doesn't exist or is "
+                               "empty." % migrations_dir)
 
         # Get the database we're operating from
         db = options.get('database')
@@ -70,41 +84,38 @@ class Command(MigrateCommand):
         executor = MigrationExecutor(connection,
                                      self.migration_progress_callback)
 
-        # Replace the loader with a project-level one
-        executor.loader = ProjectMigrationLoader(connection)
+        # Replace the loader with a pending migration one
+        executor.loader = PendingMigrationLoader(
+            connection, pending_migrations_dir=migrations_dir)
 
         targets = executor.loader.graph.leaf_nodes()
+        pending_migration_keys = executor.loader.pending_migrations.keys()
 
         if options.get('unapply'):
             targets = []
 
-            # We only want to unapply the project migrations
-            for key, migration in executor.loader.project_migrations.items():
+            # We only want to unapply the collected migrations
+            for key, migration in executor.loader.pending_migrations.items():
                 app_label, migration_name = key
                 migration_found = False
 
                 for dependency in migration.dependencies:
-                    if dependency[0] == app_label:  # pragma: no branch
+                    pending = dependency in pending_migration_keys
+
+                    if dependency[0] == app_label and not pending:
                         result = executor.loader.check_key(dependency,
                                                            app_label)
                         dependency = result or dependency
 
-                        if (dependency[0], None) not in targets:  # pragma: nb
-                            targets.append(dependency)
+                        targets.append(dependency)
                         migration_found = True
 
                 if not migration_found:
-                    for target in list(targets):
-                        if target[0] == app_label and target[1] is not None:
-                            targets.remove(target)
-
                     targets.append((app_label, None))
         else:
-            # Trim non-project migrations
-            project_migration_keys = executor.loader.project_migrations.keys()
-
+            # Trim non-collected migrations
             for migration_key in list(targets):
-                if migration_key not in project_migration_keys:
+                if migration_key not in pending_migration_keys:
                     targets.remove(migration_key)
 
         plan = executor.migration_plan(targets)
@@ -153,11 +164,15 @@ class Command(MigrateCommand):
                     ))
                     self.stdout.write(self.style.NOTICE(
                         "  Run 'manage.py makeprojectmigrations' to make new "
-                        "migrations, and then re-run "
-                        "'manage.py migrateproject' to apply them."
+                        "migrations, and then run 'manage.py migrateproject' "
+                        "to apply them."
                     ))
         else:
             executor.migrate(targets, plan, fake=options.get("fake", False))
+
+        # A little database clean-up
+        for app_label, migration_name in pending_migration_keys:
+            executor.recorder.record_unapplied(app_label, migration_name)
 
         # Send the post_migrate signal, so individual apps can do whatever they
         # need to do at this point.
